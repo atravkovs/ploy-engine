@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<Nodes>
+    <StartNode></StartNode>
+    <ActivityNode name="Activity 1"></ActivityNode>
+    <ActivityNode name="Activity 2"></ActivityNode>
+    <ActivityNode name="Activity 3"></ActivityNode>
+    <EndNode></EndNode>
+</Nodes>
