@@ -1,35 +1,26 @@
 use anyhow::Result;
-use quick_xml::de::from_str;
-use serde::Deserialize;
-use std::fs;
+use std::{fs, rc::Rc};
 
-#[derive(Deserialize, PartialEq, Debug)]
-struct ActivityNode {
-    #[serde(rename = "@name")]
-    name: String,
-}
+mod parser;
+mod step;
 
-#[derive(Deserialize, PartialEq, Debug)]
-enum NodeType {
-    StartNode,
-    EndNode,
-    ActivityNode(ActivityNode),
-}
+fn execute_step(step: &Rc<dyn step::Step>) {
+    step.execute();
 
-#[derive(Deserialize, Debug, PartialEq)]
-struct Nodes {
-    #[serde(rename = "$value")]
-    field: Vec<NodeType>,
+    let next_steps = step.next();
+
+    for next_step in next_steps.iter() {
+        execute_step(next_step);
+    }
 }
 
 fn main() -> Result<()> {
     let file_name = "Test.ploy";
-
     let file_contents = fs::read_to_string(file_name)?;
 
-    let nodes: Nodes = from_str(&file_contents)?;
+    let start_step = parser::parse_xml(&file_contents)?;
 
-    println!("{:?}", nodes);
+    execute_step(&start_step);
 
     Ok(())
 }
