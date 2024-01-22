@@ -1,12 +1,40 @@
 use std::rc::Rc;
 
-trait Delegate {
-    fn execute();
+use crate::ProcessContext;
+
+pub trait Execution {
+    fn get_name(&self) -> &str;
+}
+
+#[derive(Debug)]
+pub struct ActivityExecution<'a> {
+    name: String,
+    ctx: &'a mut ProcessContext,
+}
+
+impl<'a> ActivityExecution<'a> {
+    pub fn new(name: String, ctx: &'a mut ProcessContext) -> Self {
+        Self { name, ctx }
+    }
+
+    pub fn get_variable(&self, name: &str) -> Option<&String> {
+        self.ctx.get_variable(name)
+    }
+
+    pub fn set_variable(&mut self, name: String, value: String) {
+        self.ctx.set_variable(name, value);
+    }
+}
+
+impl<'a> Execution for ActivityExecution<'a> {
+    fn get_name(&self) -> &str {
+        &self.name
+    }
 }
 
 pub trait Step {
     fn next(&self) -> Vec<Rc<dyn Step>>;
-    fn execute(&self);
+    fn execute(&self, ctx: &mut ProcessContext);
 }
 
 #[derive(Clone)]
@@ -25,7 +53,7 @@ impl Step for StartNode {
         self.next.clone()
     }
 
-    fn execute(&self) {}
+    fn execute(&self, _ctx: &mut ProcessContext) {}
 }
 
 #[derive(Clone)]
@@ -42,17 +70,17 @@ impl Step for EndNode {
         Vec::new()
     }
 
-    fn execute(&self) {}
+    fn execute(&self, _ctx: &mut ProcessContext) {}
 }
 
 pub struct ActivityNode {
     name: String,
     next: Vec<Rc<dyn Step>>,
-    cb: Box<dyn Fn()>,
+    cb: Box<dyn Fn(ActivityExecution)>,
 }
 
 impl ActivityNode {
-    pub fn new(name: String, cb: Box<dyn Fn()>, next: Rc<dyn Step>) -> Self {
+    pub fn new(name: String, cb: Box<dyn Fn(ActivityExecution)>, next: Rc<dyn Step>) -> Self {
         Self {
             name,
             cb,
@@ -66,31 +94,9 @@ impl Step for ActivityNode {
         self.next.clone()
     }
 
-    fn execute(&self) {
-        println!("I'm executing {}", self.name);
+    fn execute(&self, ctx: &mut ProcessContext) {
+        let execution = ActivityExecution::new(self.name.clone(), ctx);
 
-        (self.cb)();
+        (self.cb)(execution);
     }
 }
-
-
-// fn main() {
-//     let end = EndNode::new();
-//     let activity2 = ActivityNode::new(
-//         "Activity Two".to_string(),
-//         Box::new(execute_activity),
-//         Rc::new(end),
-//     );
-
-//     let activity1 = ActivityNode::new(
-//         "Activity One".to_string(),
-//         Box::new(execute_activity),
-//         Rc::new(activity2),
-//     );
-
-//     let start = StartNode::new(Rc::new(activity1));
-
-//     let start_c: Rc<dyn Step> = Rc::new(start);
-
-//     execute_step(&start_c);
-// }

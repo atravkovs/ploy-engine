@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use quick_xml::de::from_str;
 use serde::Deserialize;
 
-use crate::step::{self, Step};
+use crate::step::{self, ActivityExecution, Execution, Step};
 
 #[derive(Deserialize, PartialEq, Debug)]
 struct ActivityNode {
@@ -25,8 +25,20 @@ struct Nodes {
     field: Vec<NodeType>,
 }
 
-fn execute_activity() {
-    println!("Executing an activity");
+fn execute_activity(mut execution: ActivityExecution) {
+    let counter: i32 = execution
+        .get_variable("counter")
+        .unwrap_or(&"1".to_string())
+        .parse()
+        .unwrap();
+
+    execution.set_variable("counter".to_string(), (counter + 1).to_string());
+
+    println!(
+        "Executing {} activity with name {}",
+        counter,
+        execution.get_name()
+    );
 }
 
 fn map_node(node: &NodeType, prev: &Option<Rc<dyn Step>>) -> Rc<dyn Step> {
