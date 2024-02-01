@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 
 use crate::ProcessContext;
 
@@ -8,13 +8,22 @@ pub trait Execution {
 
 #[derive(Debug)]
 pub struct ActivityExecution<'a> {
-    name: String,
+    name: &'a str,
+    inputs: &'a HashMap<String, String>,
     ctx: &'a mut ProcessContext,
 }
 
 impl<'a> ActivityExecution<'a> {
-    pub fn new(name: String, ctx: &'a mut ProcessContext) -> Self {
-        Self { name, ctx }
+    pub fn new(
+        name: &'a str,
+        inputs: &'a HashMap<String, String>,
+        ctx: &'a mut ProcessContext,
+    ) -> Self {
+        Self { name, inputs, ctx }
+    }
+
+    pub fn get_input(&self, name: &str) -> Option<&String> {
+        self.inputs.get(name)
     }
 
     pub fn get_variable(&self, name: &str) -> Option<&String> {
@@ -77,13 +86,20 @@ pub struct ActivityNode {
     name: String,
     next: Vec<Rc<dyn Step>>,
     cb: Box<dyn Fn(ActivityExecution)>,
+    inputs: HashMap<String, String>,
 }
 
 impl ActivityNode {
-    pub fn new(name: String, cb: Box<dyn Fn(ActivityExecution)>, next: Rc<dyn Step>) -> Self {
+    pub fn new(
+        name: String,
+        cb: Box<dyn Fn(ActivityExecution)>,
+        inputs: HashMap<String, String>,
+        next: Rc<dyn Step>,
+    ) -> Self {
         Self {
             name,
             cb,
+            inputs,
             next: vec![next],
         }
     }
@@ -95,7 +111,7 @@ impl Step for ActivityNode {
     }
 
     fn execute(&self, ctx: &mut ProcessContext) {
-        let execution = ActivityExecution::new(self.name.clone(), ctx);
+        let execution = ActivityExecution::new(&self.name, &self.inputs, ctx);
 
         (self.cb)(execution);
     }

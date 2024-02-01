@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 
 use anyhow::{anyhow, Result};
 use quick_xml::de::from_str;
@@ -7,9 +7,24 @@ use serde::Deserialize;
 use crate::step::{self, ActivityExecution, Execution, Step};
 
 #[derive(Deserialize, PartialEq, Debug)]
+struct ActivityInput {
+    #[serde(rename = "@name")]
+    name: String,
+    #[serde(rename = "@value")]
+    value: String,
+}
+
+#[derive(Deserialize, PartialEq, Debug)]
+enum ActivityValueType {
+    Input(ActivityInput),
+}
+
+#[derive(Deserialize, PartialEq, Debug)]
 struct ActivityNode {
     #[serde(rename = "@name")]
     name: String,
+    #[serde(rename = "$value")]
+    field: Vec<ActivityValueType>,
 }
 
 #[derive(Deserialize, PartialEq, Debug)]
@@ -39,6 +54,23 @@ fn execute_activity(mut execution: ActivityExecution) {
         counter,
         execution.get_name()
     );
+
+    println!(
+        "Hello, {}!",
+        execution
+            .get_input("name")
+            .unwrap_or(&"Sweetie".to_string())
+    );
+}
+
+fn get_activity_inputs(activity: &ActivityNode) -> HashMap<String, String> {
+    activity
+        .field
+        .iter()
+        .flat_map(|field| match field {
+            ActivityValueType::Input(input) => vec![(input.name.clone(), input.value.clone())],
+        })
+        .collect()
 }
 
 fn map_node(node: &NodeType, prev: &Option<Rc<dyn Step>>) -> Rc<dyn Step> {
@@ -48,6 +80,7 @@ fn map_node(node: &NodeType, prev: &Option<Rc<dyn Step>>) -> Rc<dyn Step> {
         NodeType::ActivityNode(activity) => Rc::new(step::ActivityNode::new(
             activity.name.to_string(),
             Box::new(execute_activity),
+            get_activity_inputs(activity),
             prev.clone().unwrap(),
         )),
     }
