@@ -1,0 +1,7 @@
+type: JobSpecification
+version: 1.0.0
+name: testJob
+
+inputs:
+  - name: name
+    type: String

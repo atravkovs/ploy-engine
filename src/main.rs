@@ -30,7 +30,7 @@ fn execute_step(step: &Rc<dyn step::Step>, ctx: &mut ProcessContext) {
 }
 
 fn main() -> Result<()> {
-    let file_name = "Test.ploy";
+    let file_name = "data/Test.ploy";
     let file_contents = fs::read_to_string(file_name)?;
 
     let start_step = parser::parse_xml(&file_contents)?;

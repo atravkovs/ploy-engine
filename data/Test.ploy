@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <Nodes>
     <StartNode></StartNode>
-    <ActivityNode name="Activity 1">
+    <ActivityNode job="testJob" name="Activity 1">
         <Input name="name" value="Artjoms" />
     </ActivityNode>
-    <ActivityNode name="Activity 2">
+    <ActivityNode job="testJob" name="Activity 2">
         <Input name="name" value="Lina" />
     </ActivityNode>
-    <ActivityNode name="Activity 3">
+    <ActivityNode job="testJob" name="Activity 3">
         <Input name="name" value="Alex" />
     </ActivityNode>
     <EndNode></EndNode>
