@@ -1,42 +1,45 @@
-use anyhow::Result;
-use std::{collections::HashMap, fs, rc::Rc};
-
-mod parser;
-mod step;
-
-#[derive(Debug, Clone, Default)]
-pub struct ProcessContext {
-    state: HashMap<String, String>,
+pub mod jobworker {
+    tonic::include_proto!("jobworker");
 }
 
-impl ProcessContext {
-    pub fn get_variable(&self, name: &str) -> Option<&String> {
-        self.state.get(name)
-    }
+use tonic::{transport::Server, Response};
 
-    pub fn set_variable(&mut self, name: String, value: String) {
-        self.state.insert(name, value);
+use crate::jobworker::{
+    job_worker_service_server::{JobWorkerService, JobWorkerServiceServer},
+    WorkItem, WorkRequest, WorkResponse,
+};
+
+#[derive(Debug, Default)]
+pub struct MyJobWorkerService {}
+
+#[tonic::async_trait]
+impl JobWorkerService for MyJobWorkerService {
+    async fn get_work_items(
+        &self,
+        request: tonic::Request<WorkRequest>,
+    ) -> Result<tonic::Response<WorkResponse>, tonic::Status> {
+        println!("Got a request: {:?}", request);
+        let response = WorkResponse {
+            workitems: vec![WorkItem {
+                inputs: "Hello World!".to_string(),
+            }],
+        };
+
+        Ok(Response::new(response))
     }
 }
 
-fn execute_step(step: &Rc<dyn step::Step>, ctx: &mut ProcessContext) {
-    step.execute(ctx);
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let addr = "0.0.0.0:50051".parse()?;
+    let job_worker = MyJobWorkerService::default();
 
-    let next_steps = step.next();
+    println!("JobWorkerServer listening on {}", addr);
 
-    for next_step in next_steps.iter() {
-        execute_step(next_step, ctx);
-    }
-}
-
-fn main() -> Result<()> {
-    let file_name = "data/Test.ploy";
-    let file_contents = fs::read_to_string(file_name)?;
-
-    let start_step = parser::parse_xml(&file_contents)?;
-
-    let mut ctx = ProcessContext::default();
-    execute_step(&start_step, &mut ctx);
+    Server::builder()
+        .add_service(JobWorkerServiceServer::new(job_worker))
+        .serve(addr)
+        .await?;
 
     Ok(())
 }

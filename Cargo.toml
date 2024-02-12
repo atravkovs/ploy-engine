@@ -9,3 +9,9 @@ edition = "2021"
 anyhow = "1.0.79"
 serde = { version = "1.0.195", features = ["derive"] }
 quick-xml = { version = "0.31.0", features = ["serialize"] }
+tonic = "0.11.0"
+prost = "0.12"
+tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
+
+[build-dependencies]
+tonic-build = "0.11.0"
