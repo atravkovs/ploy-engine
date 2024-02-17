@@ -31,7 +31,7 @@ impl JobWorkerService for MyJobWorkerService {
     ) -> Result<tonic::Response<WorkResponse>, tonic::Status> {
         println!("Got a request: {:?}", request);
 
-        let inputs = self
+        let job_items = self
             .job_worker_actor
             .send(GetWorkItems)
             .await
@@ -41,7 +41,13 @@ impl JobWorkerService for MyJobWorkerService {
             })?;
 
         let response = WorkResponse {
-            workitems: inputs.into_iter().map(|i| WorkItem { inputs: i }).collect(),
+            workitems: job_items
+                .into_iter()
+                .map(|i| WorkItem {
+                    inputs: i.inputs,
+                    job_name: i.job_name,
+                })
+                .collect(),
         };
 
         Ok(Response::new(response))

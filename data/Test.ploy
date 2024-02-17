@@ -4,7 +4,7 @@
     <ActivityNode job="testJob" name="Activity 1">
         <Input name="name" value="Artjoms" />
     </ActivityNode>
-    <ActivityNode job="testJob" name="Activity 2">
+    <ActivityNode job="testJob" name="Lina">
         <Input name="name" value="Lina" />
     </ActivityNode>
     <ActivityNode job="testJob" name="Activity 3">

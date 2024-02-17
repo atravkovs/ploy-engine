@@ -10,6 +10,7 @@ message WorkRequest {}
 
 message WorkItem {
   string inputs = 1;
+  string jobName = 2;
 }
 
 message WorkResponse {

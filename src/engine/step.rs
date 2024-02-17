@@ -1,14 +1,16 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::engine::ProcessContext;
+use crate::{actors::job_worker_actor::JobItem, engine::ProcessContext};
 
 pub trait Execution {
     fn get_name(&self) -> &str;
+    fn get_job(&self) -> &str;
 }
 
 #[derive(Debug)]
 pub struct ActivityExecution<'a> {
     name: &'a str,
+    job: &'a str,
     inputs: &'a HashMap<String, String>,
     ctx: &'a mut ProcessContext,
 }
@@ -16,10 +18,16 @@ pub struct ActivityExecution<'a> {
 impl<'a> ActivityExecution<'a> {
     pub fn new(
         name: &'a str,
+        job: &'a str,
         inputs: &'a HashMap<String, String>,
         ctx: &'a mut ProcessContext,
     ) -> Self {
-        Self { name, inputs, ctx }
+        Self {
+            name,
+            job,
+            inputs,
+            ctx,
+        }
     }
 
     pub fn get_input(&self, name: &str) -> Option<&String> {
@@ -34,14 +42,18 @@ impl<'a> ActivityExecution<'a> {
         self.ctx.set_variable(name, value);
     }
 
-    pub fn add_job(&self, inputs: String) {
-        self.ctx.add_job(inputs);
+    pub fn add_job(&self, job: JobItem) {
+        self.ctx.add_job(job);
     }
 }
 
 impl<'a> Execution for ActivityExecution<'a> {
     fn get_name(&self) -> &str {
         &self.name
+    }
+
+    fn get_job(&self) -> &str {
+        &self.job
     }
 }
 
@@ -88,6 +100,7 @@ impl Step for EndNode {
 
 pub struct ActivityNode {
     name: String,
+    job: String,
     next: Vec<Rc<dyn Step>>,
     cb: Box<dyn Fn(ActivityExecution)>,
     inputs: HashMap<String, String>,
@@ -96,12 +109,14 @@ pub struct ActivityNode {
 impl ActivityNode {
     pub fn new(
         name: String,
+        job: String,
         cb: Box<dyn Fn(ActivityExecution)>,
         inputs: HashMap<String, String>,
         next: Rc<dyn Step>,
     ) -> Self {
         Self {
             name,
+            job,
             cb,
             inputs,
             next: vec![next],
@@ -115,7 +130,7 @@ impl Step for ActivityNode {
     }
 
     fn execute(&self, ctx: &mut ProcessContext) {
-        let execution = ActivityExecution::new(&self.name, &self.inputs, ctx);
+        let execution = ActivityExecution::new(&self.name, &self.job, &self.inputs, ctx);
 
         (self.cb)(execution);
     }

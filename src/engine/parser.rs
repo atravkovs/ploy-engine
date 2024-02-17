@@ -4,7 +4,10 @@ use anyhow::{anyhow, Result};
 use quick_xml::de::from_str;
 use serde::Deserialize;
 
-use crate::engine::step::{self, ActivityExecution, Execution, Step};
+use crate::{
+    actors::job_worker_actor::JobItem,
+    engine::step::{self, ActivityExecution, Execution, Step},
+};
 
 #[derive(Deserialize, PartialEq, Debug)]
 struct ActivityInput {
@@ -23,6 +26,8 @@ enum ActivityValueType {
 struct ActivityNode {
     #[serde(rename = "@name")]
     name: String,
+    #[serde(rename = "@job")]
+    job: String,
     #[serde(rename = "$value")]
     field: Vec<ActivityValueType>,
 }
@@ -40,15 +45,19 @@ struct Nodes {
     field: Vec<NodeType>,
 }
 
-fn execute_activity(mut execution: ActivityExecution) {
+fn execute_activity(execution: ActivityExecution) {
     println!("Executing Activity with name {}", execution.get_name());
 
-    execution.add_job(format!(
+    let inputs: String = format!(
         r#"{{
             "message": "{}"
         }}"#,
         execution.get_name()
-    ));
+    );
+
+    let job = JobItem::new(inputs, execution.get_job().to_string());
+
+    execution.add_job(job);
 }
 
 fn get_activity_inputs(activity: &ActivityNode) -> HashMap<String, String> {
@@ -67,6 +76,7 @@ fn map_node(node: &NodeType, prev: &Option<Rc<dyn Step>>) -> Rc<dyn Step> {
         NodeType::EndNode => Rc::new(step::EndNode::new()),
         NodeType::ActivityNode(activity) => Rc::new(step::ActivityNode::new(
             activity.name.to_string(),
+            activity.job.to_string(),
             Box::new(execute_activity),
             get_activity_inputs(activity),
             prev.clone().unwrap(),

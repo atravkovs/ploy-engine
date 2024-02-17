@@ -2,7 +2,7 @@ use std::{collections::HashMap, rc::Rc};
 
 use actix::Addr;
 
-use crate::actors::job_worker_actor::JobWorkerActor;
+use crate::actors::job_worker_actor::{JobItem, JobWorkerActor};
 
 pub mod parser;
 pub mod step;
@@ -29,7 +29,7 @@ impl ProcessContext {
         self.state.insert(name, value);
     }
 
-    pub fn add_job(&self, inputs: String) {
+    pub fn add_job(&self, inputs: JobItem) {
         self.job_worker
             .do_send(crate::actors::job_worker_actor::AddWorkItem(inputs));
     }
