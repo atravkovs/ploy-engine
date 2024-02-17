@@ -1,6 +1,6 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::ProcessContext;
+use crate::engine::ProcessContext;
 
 pub trait Execution {
     fn get_name(&self) -> &str;
@@ -32,6 +32,10 @@ impl<'a> ActivityExecution<'a> {
 
     pub fn set_variable(&mut self, name: String, value: String) {
         self.ctx.set_variable(name, value);
+    }
+
+    pub fn add_job(&self, inputs: String) {
+        self.ctx.add_job(inputs);
     }
 }
 

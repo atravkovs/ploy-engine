@@ -1,17 +1,17 @@
 syntax = "proto3";
-
-package jobworker;
+option java_multiple_files = true;
+package org.xapik.ploy.jobworker;
 
 service JobWorkerService {
-    rpc GetWorkItems (WorkRequest) returns (WorkResponse) {}
+  rpc GetWorkItems (WorkRequest) returns (WorkResponse) {}
 }
 
 message WorkRequest {}
 
 message WorkItem {
-    string inputs = 1;
+  string inputs = 1;
 }
 
 message WorkResponse {
-    repeated WorkItem workitems = 1;
+  repeated WorkItem workitems = 1;
 }

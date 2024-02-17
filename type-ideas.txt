@@ -1,0 +1,15 @@
+from ch.swiss.test import { FullName };
+from org.atravkovs.test.utils.phones import { PhoneNumber };
+
+identifier UserSSID: string;
+
+type User {
+    userId: UserSSID;
+
+    @NotEmpty
+    @CustomType(lang: "rust", type: "bytearray")
+    optional username: string;
+
+    fullName: FullName;
+    phoneNumber: PhoneNumber;
+}
