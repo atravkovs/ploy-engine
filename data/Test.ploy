@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <Nodes>
-    <StartNode></StartNode>
-    <ActivityNode job="testJob" name="Activity 1">
-        <Input name="name" value="Artjoms" />
+    <StartNode id="start"></StartNode>
+    <ActivityNode id="activity1" job="testJob" name="Activity 1">
+        <Input name="message" value="Artjoms" />
     </ActivityNode>
-    <ActivityNode job="testJob" name="Lina">
-        <Input name="name" value="Lina" />
+    <ActivityNode id="activity2" job="testJob" name="Lina">
+        <Input name="message" value="Lina" />
     </ActivityNode>
-    <ActivityNode job="testJob" name="Activity 3">
-        <Input name="name" value="Alex" />
+    <ActivityNode id="activity3" job="testJob" name="Activity 3">
+        <Input name="message" value="Alex" />
     </ActivityNode>
-    <EndNode></EndNode>
+    <EndNode id="end"></EndNode>
 </Nodes>

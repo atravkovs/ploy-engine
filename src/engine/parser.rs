@@ -1,13 +1,12 @@
-use std::{collections::HashMap, rc::Rc};
+use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
 use quick_xml::de::from_str;
 use serde::Deserialize;
 
-use crate::{
-    actors::job_worker_actor::JobItem,
-    engine::step::{self, ActivityExecution, Execution, Step},
-};
+use crate::engine::step;
+
+use super::step::StepLeaf;
 
 #[derive(Deserialize, PartialEq, Debug)]
 struct ActivityInput {
@@ -23,7 +22,15 @@ enum ActivityValueType {
 }
 
 #[derive(Deserialize, PartialEq, Debug)]
+struct SimpleNode {
+    #[serde(rename = "@id")]
+    id: String,
+}
+
+#[derive(Deserialize, PartialEq, Debug)]
 struct ActivityNode {
+    #[serde(rename = "@id")]
+    id: String,
     #[serde(rename = "@name")]
     name: String,
     #[serde(rename = "@job")]
@@ -34,8 +41,8 @@ struct ActivityNode {
 
 #[derive(Deserialize, PartialEq, Debug)]
 enum NodeType {
-    StartNode,
-    EndNode,
+    StartNode(SimpleNode),
+    EndNode(SimpleNode),
     ActivityNode(ActivityNode),
 }
 
@@ -43,21 +50,6 @@ enum NodeType {
 struct Nodes {
     #[serde(rename = "$value")]
     field: Vec<NodeType>,
-}
-
-fn execute_activity(execution: ActivityExecution) {
-    println!("Executing Activity with name {}", execution.get_name());
-
-    let inputs: String = format!(
-        r#"{{
-            "message": "{}"
-        }}"#,
-        execution.get_name()
-    );
-
-    let job = JobItem::new(inputs, execution.get_job().to_string());
-
-    execution.add_job(job);
 }
 
 fn get_activity_inputs(activity: &ActivityNode) -> HashMap<String, String> {
@@ -70,28 +62,37 @@ fn get_activity_inputs(activity: &ActivityNode) -> HashMap<String, String> {
         .collect()
 }
 
-fn map_node(node: &NodeType, prev: &Option<Rc<dyn Step>>) -> Rc<dyn Step> {
-    match node {
-        NodeType::StartNode => Rc::new(step::StartNode::new(prev.clone().unwrap())),
-        NodeType::EndNode => Rc::new(step::EndNode::new()),
-        NodeType::ActivityNode(activity) => Rc::new(step::ActivityNode::new(
-            activity.name.to_string(),
-            activity.job.to_string(),
-            Box::new(execute_activity),
-            get_activity_inputs(activity),
-            prev.clone().unwrap(),
-        )),
+fn map_node(node: &NodeType, prev: Option<StepLeaf>) -> StepLeaf {
+    let mut leaf = match node {
+        NodeType::StartNode(simple) => {
+            StepLeaf::new(simple.id.clone(), step::ActivityType::StartNode)
+        }
+        NodeType::EndNode(simple) => StepLeaf::new(simple.id.clone(), step::ActivityType::EndNode),
+        NodeType::ActivityNode(activity) => StepLeaf::new(
+            activity.id.clone(),
+            step::ActivityType::ActivityNode(step::ActivityNode::new(
+                activity.name.to_string(),
+                activity.job.to_string(),
+                get_activity_inputs(activity),
+            )),
+        ),
+    };
+
+    if let Some(prev) = prev {
+        leaf.add_next(prev);
     }
+
+    leaf
 }
 
 /// Returns start node
-pub fn parse_xml(xml: &str) -> Result<Rc<dyn Step>> {
+pub fn parse_xml(xml: &str) -> Result<StepLeaf> {
     let nodes: Nodes = from_str(xml)?;
 
-    let mut previous: Option<Rc<dyn Step>> = Option::None;
+    let mut previous: Option<StepLeaf> = Option::None;
 
     for node in nodes.field.iter().rev() {
-        previous = Some(map_node(node, &previous));
+        previous = Some(map_node(node, previous));
     }
 
     if previous.is_none() {

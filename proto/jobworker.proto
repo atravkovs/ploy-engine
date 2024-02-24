@@ -4,15 +4,23 @@ package org.xapik.ploy.jobworker;
 
 service JobWorkerService {
   rpc GetWorkItems (WorkRequest) returns (WorkResponse) {}
+  rpc CompleteWorkItem (CompleteWorkItemRequest) returns (CompleteWorkItemResponse) {}
 }
 
 message WorkRequest {}
 
 message WorkItem {
-  string inputs = 1;
+  string jobId = 1;
   string jobName = 2;
+  string inputs = 3;
 }
 
 message WorkResponse {
   repeated WorkItem workitems = 1;
 }
+
+message CompleteWorkItemRequest {
+  string jobId = 1;
+}
+
+message CompleteWorkItemResponse {}

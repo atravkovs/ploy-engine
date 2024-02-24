@@ -6,11 +6,13 @@ use actix::Addr;
 use tonic::Response;
 
 use crate::{
-    actors::job_worker_actor::{GetWorkItems, JobWorkerActor},
+    actors::job_worker_actor::{GetWorkItems, JobCompletedMessage, JobWorkerActor},
     grpc::jobworker::{
         job_worker_service_server::JobWorkerService, WorkItem, WorkRequest, WorkResponse,
     },
 };
+
+use self::jobworker::{CompleteWorkItemRequest, CompleteWorkItemResponse};
 
 #[derive(Debug)]
 pub struct MyJobWorkerService {
@@ -25,6 +27,16 @@ impl MyJobWorkerService {
 
 #[tonic::async_trait]
 impl JobWorkerService for MyJobWorkerService {
+    async fn complete_work_item(
+        &self,
+        request: tonic::Request<CompleteWorkItemRequest>,
+    ) -> Result<tonic::Response<CompleteWorkItemResponse>, tonic::Status> {
+        let message = JobCompletedMessage::new(request.into_inner().job_id);
+        self.job_worker_actor.do_send(message);
+
+        Ok(Response::new(CompleteWorkItemResponse {}))
+    }
+
     async fn get_work_items(
         &self,
         request: tonic::Request<WorkRequest>,
@@ -44,6 +56,7 @@ impl JobWorkerService for MyJobWorkerService {
             workitems: job_items
                 .into_iter()
                 .map(|i| WorkItem {
+                    job_id: i.id,
                     inputs: i.inputs,
                     job_name: i.job_name,
                 })

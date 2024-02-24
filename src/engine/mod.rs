@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
+use std::collections::HashMap;
 
 use actix::Addr;
 
@@ -35,12 +35,21 @@ impl ProcessContext {
     }
 }
 
-pub fn execute_step(step: &Rc<dyn step::Step>, ctx: &mut ProcessContext) {
-    step.execute(ctx);
-
-    let next_steps = step.next();
-
-    for next_step in next_steps.iter() {
-        execute_step(next_step, ctx);
+pub trait Step {
+    fn id(&self) -> String;
+    fn activity_id(&self) -> String;
+    fn start(&mut self, ctx: &mut ProcessContext) {
+        self.end(ctx);
     }
+    fn end(&mut self, _ctx: &mut ProcessContext) {}
+    fn status(&self) -> StepStatus {
+        StepStatus::Completed
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StepStatus {
+    Open,
+    InProgress,
+    Completed,
 }

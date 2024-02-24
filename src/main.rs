@@ -12,12 +12,13 @@ pub mod grpc;
 
 #[actix_rt::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let job_worker_actor = actors::job_worker_actor::JobWorkerActor::default().start();
-    let process_actor = actors::process_actor::ProcessActor::new(job_worker_actor.clone()).start();
+    let file_name = "data/Test.ploy";
+    let file_contents = std::fs::read_to_string(file_name).unwrap();
 
-    process_actor
-        .send(actors::process_actor::ExecuteProcess)
-        .await?;
+    let start_step = crate::engine::parser::parse_xml(&file_contents).unwrap();
+
+    let job_worker_actor = actors::job_worker_actor::JobWorkerActor::default().start();
+    actors::process_actor::ProcessActor::new(job_worker_actor.clone(), start_step).start();
 
     let addr = "0.0.0.0:50051".parse()?;
     let job_worker_service = MyJobWorkerService::new(job_worker_actor);

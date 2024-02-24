@@ -1,137 +1,63 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{actors::job_worker_actor::JobItem, engine::ProcessContext};
-
-pub trait Execution {
-    fn get_name(&self) -> &str;
-    fn get_job(&self) -> &str;
+#[derive(Clone)]
+pub struct StepLeaf {
+    pub id: String,
+    pub step: ActivityType,
+    pub next: Vec<Rc<RefCell<StepLeaf>>>,
 }
 
-#[derive(Debug)]
-pub struct ActivityExecution<'a> {
-    name: &'a str,
-    job: &'a str,
-    inputs: &'a HashMap<String, String>,
-    ctx: &'a mut ProcessContext,
-}
-
-impl<'a> ActivityExecution<'a> {
-    pub fn new(
-        name: &'a str,
-        job: &'a str,
-        inputs: &'a HashMap<String, String>,
-        ctx: &'a mut ProcessContext,
-    ) -> Self {
+impl StepLeaf {
+    pub fn new(id: String, step: ActivityType) -> Self {
         Self {
-            name,
-            job,
-            inputs,
-            ctx,
+            id,
+            step,
+            next: Vec::new(),
         }
     }
 
-    pub fn get_input(&self, name: &str) -> Option<&String> {
-        self.inputs.get(name)
+    pub fn add_next(&mut self, next: StepLeaf) {
+        self.next.push(Rc::new(RefCell::new(next)));
     }
 
-    pub fn get_variable(&self, name: &str) -> Option<&String> {
-        self.ctx.get_variable(name)
-    }
-
-    pub fn set_variable(&mut self, name: String, value: String) {
-        self.ctx.set_variable(name, value);
-    }
-
-    pub fn add_job(&self, job: JobItem) {
-        self.ctx.add_job(job);
-    }
-}
-
-impl<'a> Execution for ActivityExecution<'a> {
-    fn get_name(&self) -> &str {
-        &self.name
-    }
-
-    fn get_job(&self) -> &str {
-        &self.job
+    pub fn next_for(&self, id: &str) -> Vec<Rc<RefCell<StepLeaf>>> {
+        if id == self.id {
+            self.next.clone()
+        } else {
+            self.next
+                .iter()
+                .flat_map(|next| next.borrow().next_for(id))
+                .collect()
+        }
     }
 }
 
-pub trait Step {
-    fn next(&self) -> Vec<Rc<dyn Step>>;
-    fn execute(&self, ctx: &mut ProcessContext);
-}
+impl StepLeaf {
+    pub fn step(&self) -> &ActivityType {
+        &self.step
+    }
 
-#[derive(Clone)]
-pub struct StartNode {
-    next: Vec<Rc<dyn Step>>,
-}
-
-impl StartNode {
-    pub fn new(next: Rc<dyn Step>) -> Self {
-        Self { next: vec![next] }
+    pub fn next(&self) -> &Vec<Rc<RefCell<StepLeaf>>> {
+        &self.next
     }
 }
 
-impl Step for StartNode {
-    fn next(&self) -> Vec<Rc<dyn Step>> {
-        self.next.clone()
-    }
-
-    fn execute(&self, _ctx: &mut ProcessContext) {}
-}
-
-#[derive(Clone)]
-pub struct EndNode {}
-
-impl EndNode {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Step for EndNode {
-    fn next(&self) -> Vec<Rc<dyn Step>> {
-        Vec::new()
-    }
-
-    fn execute(&self, _ctx: &mut ProcessContext) {}
-}
-
+#[derive(Debug, Clone)]
 pub struct ActivityNode {
-    name: String,
-    job: String,
-    next: Vec<Rc<dyn Step>>,
-    cb: Box<dyn Fn(ActivityExecution)>,
-    inputs: HashMap<String, String>,
+    pub name: String,
+    pub job: String,
+    pub inputs: HashMap<String, String>,
 }
 
 impl ActivityNode {
-    pub fn new(
-        name: String,
-        job: String,
-        cb: Box<dyn Fn(ActivityExecution)>,
-        inputs: HashMap<String, String>,
-        next: Rc<dyn Step>,
-    ) -> Self {
-        Self {
-            name,
-            job,
-            cb,
-            inputs,
-            next: vec![next],
-        }
+    pub fn new(name: String, job: String, inputs: HashMap<String, String>) -> Self {
+        Self { name, job, inputs }
     }
 }
 
-impl Step for ActivityNode {
-    fn next(&self) -> Vec<Rc<dyn Step>> {
-        self.next.clone()
-    }
-
-    fn execute(&self, ctx: &mut ProcessContext) {
-        let execution = ActivityExecution::new(&self.name, &self.job, &self.inputs, ctx);
-
-        (self.cb)(execution);
-    }
+#[derive(Debug, Clone)]
+pub enum ActivityType {
+    StartNode,
+    EndNode,
+    ActivityNode(ActivityNode),
 }
