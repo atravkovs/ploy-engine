@@ -1,0 +1,11 @@
+syntax = "proto3";
+option java_multiple_files = true;
+package org.xapik.ploy.engine;
+
+service EngineService {
+    rpc StartProcess(StartProcessRequest) returns (StartProcessResponse) {}
+}
+
+message StartProcessRequest {}
+
+message StartProcessResponse {}

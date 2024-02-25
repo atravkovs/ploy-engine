@@ -131,11 +131,11 @@ pub struct ProcessActor {
     ctx: ProcessContext,
     queue: Vec<Rc<RefCell<dyn Step>>>,
     in_progress_queue: Vec<Rc<RefCell<dyn Step>>>,
-    process_definition: StepLeaf,
+    process_definition: Option<StepLeaf>,
 }
 
 impl ProcessActor {
-    pub fn new(job_worker: Addr<JobWorkerActor>, process_definition: StepLeaf) -> Self {
+    pub fn new(job_worker: Addr<JobWorkerActor>) -> Self {
         let queue = Vec::default();
         let in_progress_queue = Vec::default();
 
@@ -146,7 +146,7 @@ impl ProcessActor {
             ctx,
             queue,
             in_progress_queue,
-            process_definition,
+            process_definition: Option::None,
         }
     }
 
@@ -162,6 +162,8 @@ impl ProcessActor {
             println!("Step {} completed", step_ref.borrow().id());
             let next = self
                 .process_definition
+                .as_ref()
+                .unwrap()
                 .next_for(&step_ref.borrow().activity_id());
             for next in next {
                 self.queue.push(map_step(&next.borrow()));
@@ -182,7 +184,13 @@ impl Actor for ProcessActor {
                 ctx.address().recipient(),
             ));
 
-        let step = map_step(&self.process_definition);
+        let file_name = "data/Test.ploy";
+        let file_contents = std::fs::read_to_string(file_name).unwrap();
+
+        self.process_definition =
+            Option::Some(crate::engine::parser::parse_xml(&file_contents).unwrap());
+
+        let step = map_step(&self.process_definition.as_ref().unwrap());
         self.queue.push(step);
         self.process_queue();
     }
