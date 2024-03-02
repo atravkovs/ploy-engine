@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use actix::{Actor, Arbiter};
 use actix_rt::System;
 use tonic::transport::Server;
@@ -10,11 +12,20 @@ use crate::grpc::{
 };
 
 pub mod actors;
-pub mod engine;
+pub mod definition;
 pub mod grpc;
+pub mod steps;
 
 #[actix_rt::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let file_name = "data/Test-v2.ploy";
+    let file_contents = std::fs::read_to_string(file_name).unwrap();
+
+    let process_definition = Arc::new(
+        crate::definition::parser::parse_xml(&file_contents)
+            .expect("Error parsing process definition"),
+    );
+
     let job_worker_actor = actors::job_worker_actor::JobWorkerActor::default().start();
 
     let addr = "0.0.0.0:50051".parse()?;
@@ -29,6 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_service(EngineServiceServer::new(MyEngineService::new(
             job_worker_actor.clone(),
             arbiter_handle,
+            process_definition,
         )))
         .serve(addr)
         .await?;
