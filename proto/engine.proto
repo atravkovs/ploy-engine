@@ -6,6 +6,8 @@ service EngineService {
     rpc StartProcess(StartProcessRequest) returns (StartProcessResponse) {}
 }
 
-message StartProcessRequest {}
+message StartProcessRequest {
+    map<string, string> inputs = 1;
+}
 
 message StartProcessResponse {}

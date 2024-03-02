@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<Ploy>
+    <Nodes>
+        <StartNode id="start"></StartNode>
+
+        <ActivityNode id="activity1" job="testJob" name="Activity 1">
+            <Inputs>
+                <Input name="message" from="start" output="name" />
+            </Inputs>
+        </ActivityNode>
+
+        <ActivityNode id="activity2" job="testJob" name="Lina">
+            <Inputs>
+                <Input name="message" from="start" output="name" />
+            </Inputs>
+        </ActivityNode>
+
+        <ActivityNode id="activity3" job="testJob" name="Activity 3">
+            <Inputs>
+                <Input name="message" from="start" output="name" />
+            </Inputs>
+        </ActivityNode>
+
+        <EndNode id="end"></EndNode>
+
+        <DataNode id="data1">
+            <Outputs>
+                <Output name="value" value="Artjoms" />
+            </Outputs>
+        </DataNode>
+    </Nodes>
+    <Flow>
+        <FlowNode from="start" to="activity1"></FlowNode>
+        <FlowNode from="activity1" to="activity2"></FlowNode>
+        <FlowNode from="activity2" to="activity3"></FlowNode>
+        <FlowNode from="activity3" to="end"></FlowNode>
+    </Flow>
+    <Diagram>
+        <Position id="start" x="50" y="250"></Position>
+        <Position id="activity1" x="250" y="250"></Position>
+        <Position id="activity2" x="450" y="250"></Position>
+        <Position id="activity3" x="700" y="250"></Position>
+        <Position id="end" x="900" y="250"></Position>
+        <Position id="data1" x="150" y="550"></Position>
+    </Diagram>
+</Ploy>

@@ -1,4 +1,5 @@
 use actix::{Actor, Handler, Message, Recipient};
+use anyhow::Result;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum JobStatus {
@@ -31,14 +32,14 @@ impl JobItem {
 pub struct AddWorkItem(pub JobItem);
 
 #[derive(Message, Clone, Debug)]
-#[rtype(result = "()")]
+#[rtype(result = "Result<(), anyhow::Error>")]
 pub struct JobCompletedMessage {
-    pub step_id: String,
+    pub job_id: String,
 }
 
 impl JobCompletedMessage {
     pub fn new(job_id: String) -> Self {
-        Self { step_id: job_id }
+        Self { job_id }
     }
 }
 
@@ -123,17 +124,19 @@ impl Handler<AddCompletionSubscriber> for JobWorkerActor {
 }
 
 impl Handler<JobCompletedMessage> for JobWorkerActor {
-    type Result = ();
+    type Result = Result<()>;
 
     fn handle(&mut self, msg: JobCompletedMessage, _ctx: &mut Self::Context) -> Self::Result {
         // TODO optimize this
         self.work_items
             .iter_mut()
-            .find(|work_item| work_item.id == msg.step_id)
+            .find(|work_item| work_item.id == msg.job_id)
             .map(|work_item| work_item.status = JobStatus::Completed);
 
         self.completed_subscribers
             .iter()
             .for_each(|sub| sub.do_send(msg.clone()));
+
+        Ok(())
     }
 }
