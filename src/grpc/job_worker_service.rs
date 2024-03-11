@@ -3,6 +3,7 @@ pub mod jobworker {
 }
 
 use actix::Addr;
+use serde_json::{Map, Value};
 use tonic::Response;
 
 use crate::actors::job_worker_actor::{GetWorkItems, JobCompletedMessage, JobWorkerActor};
@@ -29,7 +30,15 @@ impl JobWorkerService for MyJobWorkerService {
         &self,
         request: tonic::Request<CompleteWorkItemRequest>,
     ) -> Result<tonic::Response<CompleteWorkItemResponse>, tonic::Status> {
-        let message = JobCompletedMessage::new(request.into_inner().job_id);
+        let inner_request = request.into_inner();
+
+        let job_outputs: Map<String, Value> = serde_json::from_str(&inner_request.outputs)
+            .map_err(|e| {
+                println!("Error: {:?}", e);
+                tonic::Status::invalid_argument("Invalid outputs JSON")
+            })?;
+
+        let message = JobCompletedMessage::new(inner_request.job_id, job_outputs);
         self.job_worker_actor.do_send(message);
 
         Ok(Response::new(CompleteWorkItemResponse {}))

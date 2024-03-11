@@ -9,15 +9,15 @@
             </Inputs>
         </ActivityNode>
 
-        <ActivityNode id="activity2" job="testJob" name="Lina">
+        <ActivityNode id="activity2" job="testJob" name="Activity 2">
             <Inputs>
-                <Input name="message" from="start" output="name" />
+                <Input name="message" from="activity1" output="message" />
             </Inputs>
         </ActivityNode>
 
         <ActivityNode id="activity3" job="testJob" name="Activity 3">
             <Inputs>
-                <Input name="message" from="start" output="name" />
+                <Input name="message" from="activity2" output="message" />
             </Inputs>
         </ActivityNode>
 

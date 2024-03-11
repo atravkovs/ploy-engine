@@ -181,6 +181,7 @@ impl Handler<JobCompletedMessage> for ProcessActor {
                 let step_state = self.steps.get_mut(&step_id).unwrap();
                 step_state.status = StepExecutionStatus::Completed;
                 step_state.outputs.extend(outputs);
+                step_state.outputs.extend(msg.outputs);
 
                 self.execute_next_steps(&step.id())?;
             }

@@ -21,6 +21,7 @@ message WorkResponse {
 
 message CompleteWorkItemRequest {
   string jobId = 1;
+  string outputs = 2;
 }
 
 message CompleteWorkItemResponse {}

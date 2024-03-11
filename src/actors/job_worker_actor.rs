@@ -1,5 +1,6 @@
 use actix::{Actor, Handler, Message, Recipient};
 use anyhow::Result;
+use serde_json::{Map, Value};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum JobStatus {
@@ -35,11 +36,12 @@ pub struct AddWorkItem(pub JobItem);
 #[rtype(result = "Result<(), anyhow::Error>")]
 pub struct JobCompletedMessage {
     pub job_id: String,
+    pub outputs: Map<String, Value>,
 }
 
 impl JobCompletedMessage {
-    pub fn new(job_id: String) -> Self {
-        Self { job_id }
+    pub fn new(job_id: String, outputs: Map<String, Value>) -> Self {
+        Self { job_id, outputs }
     }
 }
 
