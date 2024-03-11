@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde_json::Value;
 
 use crate::definition::step::{ManageStep, Step, StepInputRequest, StepResult};
 
@@ -24,6 +25,15 @@ impl ActivityStep {
 impl Step for ActivityStep {
     fn id(&self) -> String {
         self.id.clone()
+    }
+
+    fn get_output(&self, name: &str, state: Option<&crate::definition::step::StepState>) -> Value {
+        state
+            .expect(format!("Step {} has to be executed first", self.id).as_str())
+            .outputs
+            .get(name)
+            .expect(format!("Output {} not found", name).as_str())
+            .clone()
     }
 
     fn get_input_requests(&self) -> Vec<StepInputRequest> {

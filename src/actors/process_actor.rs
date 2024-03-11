@@ -8,33 +8,10 @@ use super::{
     actor_step_context::ActorStepContext,
     job_worker_actor::{JobCompletedMessage, JobWorkerActor},
 };
-use crate::definition::{process_definition::ProcessDefinition, step::StepInputRequest};
-
-#[derive(Debug, Clone)]
-pub enum StepExecutionStatus {
-    Started,
-    Waiting,
-    Completed,
-}
-
-#[derive(Debug, Clone)]
-pub struct StepState {
-    pub step_id: String,
-    pub status: StepExecutionStatus,
-    pub inputs: Map<String, Value>,
-    pub outputs: Map<String, Value>,
-}
-
-impl StepState {
-    pub fn new(step_id: String) -> Self {
-        Self {
-            step_id,
-            status: StepExecutionStatus::Started,
-            inputs: Map::default(),
-            outputs: Map::default(),
-        }
-    }
-}
+use crate::definition::{
+    process_definition::ProcessDefinition,
+    step::{StepExecutionStatus, StepInputRequest, StepState},
+};
 
 pub struct ProcessActor {
     job_worker: Addr<JobWorkerActor>,
@@ -68,15 +45,16 @@ impl ProcessActor {
         let mut inputs = Map::default();
 
         for input_request in input_requests {
-            let value = self
-                .steps
-                .get(&input_request.from)
-                .ok_or_else(|| anyhow::anyhow!("Step not found"))?
-                .outputs
-                .get(&input_request.output)
-                .ok_or_else(|| anyhow::anyhow!("Output not found"))?;
+            let from_step = self
+                .process_definition
+                .get_step(&input_request.from)
+                .ok_or_else(|| anyhow!("{} Step not found", input_request.from))?;
+            let from_step_state = self.steps.get(&input_request.from);
 
-            inputs.insert(input_request.name.clone(), value.clone());
+            inputs.insert(
+                input_request.name.clone(),
+                from_step.get_output(&input_request.output, from_step_state),
+            );
         }
 
         Ok(inputs)

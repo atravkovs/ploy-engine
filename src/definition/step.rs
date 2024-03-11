@@ -28,8 +28,38 @@ pub enum StepResult {
     Completed(StepOutputs),
 }
 
+#[derive(Debug, Clone)]
+pub enum StepExecutionStatus {
+    Started,
+    Waiting,
+    Completed,
+}
+
+#[derive(Debug, Clone)]
+pub struct StepState {
+    pub step_id: String,
+    pub status: StepExecutionStatus,
+    pub inputs: Map<String, Value>,
+    pub outputs: Map<String, Value>,
+}
+
+impl StepState {
+    pub fn new(step_id: String) -> Self {
+        Self {
+            step_id,
+            status: StepExecutionStatus::Started,
+            inputs: Map::default(),
+            outputs: Map::default(),
+        }
+    }
+}
+
 pub trait Step: Send + Sync {
     fn id(&self) -> String;
+
+    fn get_output(&self, _name: &str, _state: Option<&StepState>) -> Value {
+        unimplemented!("get_output not implemented");
+    }
 
     fn get_input_requests(&self) -> Vec<StepInputRequest> {
         vec![]

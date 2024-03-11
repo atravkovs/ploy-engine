@@ -5,7 +5,7 @@
 
         <ActivityNode id="activity1" job="testJob" name="Activity 1">
             <Inputs>
-                <Input name="message" from="start" output="name" />
+                <Input name="message" from="data1" output="value" />
             </Inputs>
         </ActivityNode>
 

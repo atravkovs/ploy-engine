@@ -26,6 +26,12 @@ pub struct DataNode {
 
 impl Into<DataStep> for DataNode {
     fn into(self) -> DataStep {
-        DataStep::new(self.id)
+        let mut outputs = serde_json::Map::new();
+
+        self.outputs.outputs.iter().for_each(|o| {
+            outputs.insert(o.name.clone(), serde_json::Value::String(o.value.clone()));
+        });
+
+        DataStep::new(self.id, outputs)
     }
 }
