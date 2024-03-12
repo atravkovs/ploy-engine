@@ -35,6 +35,7 @@ impl Step for ScriptStep {
     ) -> anyhow::Result<crate::definition::step::StepResult> {
         println!("Hello from script step!");
 
+        // TODO! - Set python library path from environment variable + bundle w docker image
         let mut settings: Settings =
             (Settings::default()).with_path("/home/s0ck3t/ploy/RustPython/Lib".to_string());
         settings.no_sig_int = true;
