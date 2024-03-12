@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use actix::{Actor, Arbiter};
 use actix_rt::System;
+
+use tokio::select;
 use tonic::transport::Server;
 
 use crate::grpc::{
@@ -35,15 +37,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let arbiter_handle = Arbiter::current();
 
-    Server::builder()
+    let t1 = Server::builder()
         .add_service(JobWorkerServiceServer::new(job_worker_service))
         .add_service(EngineServiceServer::new(MyEngineService::new(
             job_worker_actor.clone(),
             arbiter_handle,
             process_definition,
         )))
-        .serve(addr)
-        .await?;
+        .serve(addr);
+
+    let t2 = actix_rt::signal::ctrl_c();
+
+    select! {
+        _ = t1 => {
+            println!("\nServer stopped");
+        }
+        _ = t2 => {
+            println!("\nCtrl-C received");
+        }
+    };
 
     System::current().stop();
 

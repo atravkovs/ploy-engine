@@ -24,9 +24,12 @@
         <EndNode id="end" />
 
         <DataNode id="data1" type="string" value="Artjoms" />
+
+        <ScriptNode id="script1" />
     </Nodes>
     <Flow>
-        <FlowNode from="start" to="activity1"></FlowNode>
+        <FlowNode from="start" to="script1"></FlowNode>
+        <FlowNode from="script1" to="activity1"></FlowNode>
         <FlowNode from="activity1" to="activity2"></FlowNode>
         <FlowNode from="activity2" to="activity3"></FlowNode>
         <FlowNode from="activity3" to="end"></FlowNode>

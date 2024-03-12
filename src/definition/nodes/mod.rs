@@ -4,3 +4,4 @@ pub mod end;
 pub mod node;
 pub mod start;
 pub mod flow;
+pub mod script;
