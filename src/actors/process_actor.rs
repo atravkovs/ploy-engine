@@ -39,21 +39,42 @@ impl ProcessActor {
     }
 
     fn resolve_input_requests(
-        &self,
+        &mut self,
         input_requests: &Vec<StepInputRequest>,
     ) -> Result<Map<String, Value>> {
         let mut inputs = Map::default();
 
         for input_request in input_requests {
-            let from_step = self
-                .process_definition
-                .get_step(&input_request.from)
-                .ok_or_else(|| anyhow!("{} Step not found", input_request.from))?;
-            let from_step_state = self.steps.get(&input_request.from);
+            let from_step_state: Option<&StepState> = {
+                let state = self.steps.get(&input_request.from);
+
+                if state.is_some() {
+                    state
+                } else {
+                    self.start_step(input_request.from.clone())
+                        .expect("Start step failed");
+
+                    self.steps.get(&input_request.from)
+                }
+            };
+
+            let outputs = from_step_state
+                .expect("Step should have been executed first")
+                .outputs
+                .clone();
 
             inputs.insert(
                 input_request.name.clone(),
-                from_step.get_output(&input_request.output, from_step_state),
+                outputs
+                    .get(input_request.output.as_str())
+                    .expect(
+                        format!(
+                            "Step {} should have outputted {} value",
+                            input_request.from, input_request.output
+                        )
+                        .as_str(),
+                    )
+                    .clone(),
             );
         }
 
@@ -61,13 +82,18 @@ impl ProcessActor {
     }
 
     fn start_step(&mut self, step_id: String) -> Result<()> {
+        let input_requests = self
+            .process_definition
+            .get_step(&step_id)
+            .ok_or_else(|| anyhow::anyhow!("Step not found"))?
+            .get_input_requests();
+
+        let inputs = self.resolve_input_requests(&input_requests)?;
+
         let step = self
             .process_definition
             .get_step(&step_id)
             .ok_or_else(|| anyhow::anyhow!("Step not found"))?;
-
-        let input_requests = step.get_input_requests();
-        let inputs = self.resolve_input_requests(&input_requests)?;
 
         let step_state = self
             .steps

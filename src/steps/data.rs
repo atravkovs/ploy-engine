@@ -5,12 +5,12 @@ use crate::definition::step::Step;
 #[derive(Debug, Clone)]
 pub struct DataStep {
     pub id: String,
-    pub outputs: Map<String, Value>,
+    pub value: Value,
 }
 
 impl DataStep {
-    pub fn new(id: String, outputs: Map<String, Value>) -> Self {
-        Self { id, outputs }
+    pub fn new(id: String, value: Value) -> Self {
+        Self { id, value }
     }
 }
 
@@ -19,14 +19,16 @@ impl Step for DataStep {
         self.id.clone()
     }
 
-    fn get_output(
+    fn start(
         &self,
-        name: &str,
-        _state: Option<&crate::definition::step::StepState>,
-    ) -> serde_json::Value {
-        self.outputs
-            .get(name)
-            .expect(&format!("Output with {} not found", name))
-            .clone()
+        _ctx: &dyn crate::definition::step::ManageStep,
+    ) -> anyhow::Result<crate::definition::step::StepResult> {
+        let outputs = {
+            let mut outputs = Map::default();
+            outputs.insert("value".to_string(), self.value.clone());
+            outputs
+        };
+
+        Ok(crate::definition::step::StepResult::Completed(outputs))
     }
 }

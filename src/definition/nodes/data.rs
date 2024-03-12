@@ -3,35 +3,33 @@ use serde::Deserialize;
 use crate::steps::data::DataStep;
 
 #[derive(Deserialize, PartialEq, Debug, Clone)]
-pub struct DataNodeOutput {
-    #[serde(rename = "@name")]
-    pub name: String,
-    #[serde(rename = "@value")]
-    pub value: String,
-}
-
-#[derive(Deserialize, PartialEq, Debug, Clone)]
-pub struct DataNodeOutputs {
-    #[serde(rename = "$value")]
-    pub outputs: Vec<DataNodeOutput>,
+pub enum DataNodeTypes {
+    #[serde(rename = "string")]
+    String,
+    #[serde(rename = "number")]
+    Number,
+    #[serde(rename = "boolean")]
+    Boolean,
 }
 
 #[derive(Deserialize, PartialEq, Debug, Clone)]
 pub struct DataNode {
     #[serde(rename = "@id")]
     pub id: String,
-    #[serde(rename = "Outputs")]
-    pub outputs: DataNodeOutputs,
+    #[serde(rename = "@type")]
+    pub rtype: DataNodeTypes,
+    #[serde(rename = "@value")]
+    pub value: String,
 }
 
 impl Into<DataStep> for DataNode {
     fn into(self) -> DataStep {
-        let mut outputs = serde_json::Map::new();
+        let value = match self.rtype {
+            DataNodeTypes::String => serde_json::Value::String(self.value),
+            DataNodeTypes::Number => serde_json::Value::Number(self.value.parse().unwrap()),
+            DataNodeTypes::Boolean => serde_json::Value::Bool(self.value.parse().unwrap()),
+        };
 
-        self.outputs.outputs.iter().for_each(|o| {
-            outputs.insert(o.name.clone(), serde_json::Value::String(o.value.clone()));
-        });
-
-        DataStep::new(self.id, outputs)
+        DataStep::new(self.id, value)
     }
 }

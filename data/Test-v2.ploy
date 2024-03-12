@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <Ploy>
     <Nodes>
-        <StartNode id="start"></StartNode>
+        <StartNode id="start" />
 
         <ActivityNode id="activity1" job="testJob" name="Activity 1">
             <Inputs>
@@ -21,13 +21,9 @@
             </Inputs>
         </ActivityNode>
 
-        <EndNode id="end"></EndNode>
+        <EndNode id="end" />
 
-        <DataNode id="data1">
-            <Outputs>
-                <Output name="value" value="Artjoms" />
-            </Outputs>
-        </DataNode>
+        <DataNode id="data1" type="string" value="Artjoms" />
     </Nodes>
     <Flow>
         <FlowNode from="start" to="activity1"></FlowNode>

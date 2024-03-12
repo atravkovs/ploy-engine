@@ -57,10 +57,6 @@ impl StepState {
 pub trait Step: Send + Sync {
     fn id(&self) -> String;
 
-    fn get_output(&self, _name: &str, _state: Option<&StepState>) -> Value {
-        unimplemented!("get_output not implemented");
-    }
-
     fn get_input_requests(&self) -> Vec<StepInputRequest> {
         vec![]
     }
@@ -71,9 +67,5 @@ pub trait Step: Send + Sync {
 
     fn end(&self, _ctx: &dyn ManageStep) -> Result<StepResult> {
         Ok(StepResult::Completed(Map::default()))
-    }
-
-    fn is_async(&self) -> bool {
-        false
     }
 }
