@@ -57,6 +57,14 @@ impl StepState {
 pub trait Step: Send + Sync {
     fn id(&self) -> String;
 
+    fn input_schema(&self) -> Option<String> {
+        None
+    }
+
+    fn output_schema(&self) -> Option<String> {
+        None
+    }
+
     fn get_input_requests(&self) -> Vec<StepInputRequest> {
         vec![]
     }

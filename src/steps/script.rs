@@ -11,12 +11,26 @@ use crate::definition::step::{Step, StepInputRequest};
 pub struct ScriptStep {
     id: String,
     script: String,
+    input_schema: String,
+    output_schema: String,
     inputs: Vec<StepInputRequest>,
 }
 
 impl ScriptStep {
-    pub fn new(id: String, script: String, inputs: Vec<StepInputRequest>) -> Self {
-        Self { id, script, inputs }
+    pub fn new(
+        id: String,
+        script: String,
+        input_schema: String,
+        output_schema: String,
+        inputs: Vec<StepInputRequest>,
+    ) -> Self {
+        Self {
+            id,
+            script,
+            inputs,
+            input_schema,
+            output_schema,
+        }
     }
 }
 
@@ -27,6 +41,14 @@ impl Step for ScriptStep {
 
     fn get_input_requests(&self) -> Vec<StepInputRequest> {
         self.inputs.clone()
+    }
+
+    fn input_schema(&self) -> Option<String> {
+        Some(self.input_schema.clone())
+    }
+
+    fn output_schema(&self) -> Option<String> {
+        Some(self.output_schema.clone())
     }
 
     fn start(

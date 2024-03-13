@@ -7,14 +7,25 @@ pub struct ActivityStep {
     id: String,
     name: String,
     job: String,
+    input_schema: String,
+    output_schema: String,
     inputs: Vec<StepInputRequest>,
 }
 
 impl ActivityStep {
-    pub fn new(id: String, name: String, job: String, inputs: Vec<StepInputRequest>) -> Self {
+    pub fn new(
+        id: String,
+        name: String,
+        input_schema: String,
+        output_schema: String,
+        job: String,
+        inputs: Vec<StepInputRequest>,
+    ) -> Self {
         Self {
             id,
             name,
+            input_schema,
+            output_schema,
             job,
             inputs,
         }
@@ -24,6 +35,14 @@ impl ActivityStep {
 impl Step for ActivityStep {
     fn id(&self) -> String {
         self.id.clone()
+    }
+
+    fn input_schema(&self) -> Option<String> {
+        Some(self.input_schema.clone())
+    }
+
+    fn output_schema(&self) -> Option<String> {
+        Some(self.output_schema.clone())
     }
 
     fn get_input_requests(&self) -> Vec<StepInputRequest> {

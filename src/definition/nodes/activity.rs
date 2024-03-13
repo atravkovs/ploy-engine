@@ -10,6 +10,10 @@ pub struct ActivityNode {
     pub id: String,
     #[serde(rename = "@name")]
     pub name: String,
+    #[serde(rename = "@input")]
+    pub input: String,
+    #[serde(rename = "@output")]
+    pub output: String,
     #[serde(rename = "@job")]
     pub job: String,
     #[serde(rename = "Inputs")]
@@ -18,6 +22,13 @@ pub struct ActivityNode {
 
 impl Into<ActivityStep> for ActivityNode {
     fn into(self) -> ActivityStep {
-        ActivityStep::new(self.id, self.name, self.job, self.inputs.into())
+        ActivityStep::new(
+            self.id,
+            self.name,
+            self.input,
+            self.output,
+            self.job,
+            self.inputs.into(),
+        )
     }
 }

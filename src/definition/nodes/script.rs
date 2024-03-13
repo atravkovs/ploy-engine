@@ -12,10 +12,20 @@ pub struct ScriptNode {
     pub script: String,
     #[serde(rename = "Inputs")]
     pub inputs: InputRequests,
+    #[serde(rename = "@input")]
+    pub input: String,
+    #[serde(rename = "@output")]
+    pub output: String,
 }
 
 impl Into<ScriptStep> for ScriptNode {
     fn into(self) -> ScriptStep {
-        ScriptStep::new(self.id, self.script, self.inputs.into())
+        ScriptStep::new(
+            self.id,
+            self.script,
+            self.input,
+            self.output,
+            self.inputs.into(),
+        )
     }
 }

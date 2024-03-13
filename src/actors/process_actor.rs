@@ -1,8 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
-use actix::{Actor, Addr, AsyncContext, Handler};
+use actix::{Actor, ActorContext, Addr, AsyncContext, Handler};
 use anyhow::{anyhow, Result};
-use serde_json::{Map, Value};
+use serde_json::{json, Map, Value};
 
 use super::{
     actor_step_context::ActorStepContext,
@@ -81,6 +81,32 @@ impl ProcessActor {
         Ok(inputs)
     }
 
+    fn validate_map(map: &Map<String, Value>, schema_name: &str) -> Result<()> {
+        let schema_contents =
+            std::fs::read_to_string(format!("data/schemas/{schema_name}.json")).unwrap();
+
+        let schema: Value = serde_json::from_str(&schema_contents).unwrap();
+
+        let value = Value::Object(map.clone());
+
+        let compiled = jsonschema::JSONSchema::compile(&schema).expect("A valid schema");
+
+        let result = compiled.validate(&value);
+
+        if let Err(errors) = result {
+            let err_message = errors
+                .map(|err| err.to_string())
+                .collect::<Vec<String>>()
+                .join("\n");
+
+            println!("Validation failed: {}", err_message);
+
+            Err(anyhow!(err_message))
+        } else {
+            Ok(())
+        }
+    }
+
     fn start_step(&mut self, step_id: String) -> Result<()> {
         let input_requests = self
             .process_definition
@@ -94,6 +120,10 @@ impl ProcessActor {
             .process_definition
             .get_step(&step_id)
             .ok_or_else(|| anyhow::anyhow!("Step not found"))?;
+
+        if let Some(input_schema) = step.input_schema() {
+            Self::validate_map(&inputs, &input_schema)?;
+        }
 
         let step_state = self
             .steps
@@ -113,6 +143,11 @@ impl ProcessActor {
             crate::definition::step::StepResult::Completed(outputs) => {
                 step_state.status = StepExecutionStatus::Completed;
                 step_state.outputs.extend(outputs);
+
+                if let Some(output_schema) = step.output_schema() {
+                    Self::validate_map(&step_state.outputs, &output_schema)?;
+                }
+
                 self.execute_next_steps(&step.id())?;
             }
         }
@@ -149,13 +184,16 @@ impl Actor for ProcessActor {
             start_step_state,
         );
 
-        self.start_step(self.process_definition.get_start_step_id())
-            .unwrap();
-
         self.job_worker
             .do_send(crate::actors::job_worker_actor::AddCompletionSubscriber(
                 ctx.address().recipient(),
             ));
+
+        if let Err(err) = self.start_step(self.process_definition.get_start_step_id()) {
+            ctx.stop();
+            println!("Failed to start process: {}", err);
+            // log::error!("Failed to start process: {}", err);
+        }
     }
 }
 
@@ -186,6 +224,10 @@ impl Handler<JobCompletedMessage> for ProcessActor {
                 step_state.status = StepExecutionStatus::Completed;
                 step_state.outputs.extend(outputs);
                 step_state.outputs.extend(msg.outputs);
+
+                if let Some(output_schema) = step.output_schema() {
+                    Self::validate_map(&step_state.outputs, &output_schema)?;
+                }
 
                 self.execute_next_steps(&step.id())?;
             }
