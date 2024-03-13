@@ -1,15 +1,13 @@
-use std::collections::HashMap;
-
+use quick_xml::se;
 use rustpython::{
     self,
-    vm::{
-        self,
-        builtins::{PyDict, PyMap, PyStr},
-        convert::ToPyObject,
-        stdlib, PyRef, Settings,
-    },
+    vm::{self, stdlib, Settings},
 };
-use serde_json::Map;
+use serde_json::{json, value::Serializer, Map, Value};
+use vm::{
+    py_serde::{deserialize, serialize},
+    PyObjectRef,
+};
 
 use crate::definition::step::Step;
 
@@ -33,14 +31,14 @@ impl Step for ScriptStep {
         &self,
         _ctx: &dyn crate::definition::step::ManageStep,
     ) -> anyhow::Result<crate::definition::step::StepResult> {
-        println!("Hello from script step!");
-
         // TODO! - Set python library path from environment variable + bundle w docker image
         let mut settings: Settings =
             (Settings::default()).with_path("/home/s0ck3t/ploy/RustPython/Lib".to_string());
         settings.no_sig_int = true;
         settings.debug = true;
         settings.inspect = true;
+
+        let sample_input_json = json!({ "hello": "world!" });
 
         let interpreter = rustpython::vm::Interpreter::with_init(settings, |vm| {
             vm.add_native_modules(stdlib::get_module_inits());
@@ -62,11 +60,27 @@ impl Step for ScriptStep {
 
                 let module = module_res.expect("Module imported");
 
-                let take_string_fn = module.get_attr("take_string", vm).expect("get take string");
+                let execute_fn = module
+                    .get_attr("execute", vm)
+                    .expect("Should have execute function");
 
-                take_string_fn
-                    .call((String::from("Rust str -> Python"),), vm)
-                    .expect("call take string");
+                let py_input =
+                    deserialize(vm, sample_input_json).expect("Convert JSON to PyObject");
+
+                let execution_result = execute_fn.call((py_input,), vm);
+
+                if let Err(err) = execution_result {
+                    vm.print_exception(err);
+
+                    return Ok(());
+                }
+
+                let result = execution_result.expect("Execution result");
+
+                let result_json =
+                    serialize(vm, &result, Serializer).expect("Convert PyObject to JSON");
+
+                println!("Result: {}", result_json);
 
                 Ok(())
             })
