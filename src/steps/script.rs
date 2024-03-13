@@ -1,13 +1,9 @@
-use quick_xml::se;
 use rustpython::{
     self,
     vm::{self, stdlib, Settings},
 };
-use serde_json::{json, value::Serializer, Map, Value};
-use vm::{
-    py_serde::{deserialize, serialize},
-    PyObjectRef,
-};
+use serde_json::{json, value::Serializer, Map};
+use vm::py_serde::{deserialize, serialize};
 
 use crate::definition::step::Step;
 
@@ -45,11 +41,14 @@ impl Step for ScriptStep {
             vm.add_native_modules(rustpython_stdlib::get_module_inits());
         });
 
+        interpreter.enter(|vm| {
+            vm.insert_sys_path(vm.new_pyobj("data/python"))
+                .expect("add path");
+            vm.import("pre-import", None, 0).expect("Pre-import works");
+        });
+
         interpreter
             .enter(|vm| -> vm::PyResult<()> {
-                vm.insert_sys_path(vm.new_pyobj("data/python"))
-                    .expect("add path");
-
                 let module_res = vm.import("test", None, 0);
 
                 if let Err(err) = module_res {
