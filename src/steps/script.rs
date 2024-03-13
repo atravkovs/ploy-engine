@@ -2,19 +2,21 @@ use rustpython::{
     self,
     vm::{self, stdlib, Settings},
 };
-use serde_json::{json, value::Serializer, Map};
+use serde_json::{value::Serializer, Map, Value};
 use vm::py_serde::{deserialize, serialize};
 
-use crate::definition::step::Step;
+use crate::definition::step::{Step, StepInputRequest};
 
 #[derive(Debug, Clone)]
 pub struct ScriptStep {
-    pub id: String,
+    id: String,
+    script: String,
+    inputs: Vec<StepInputRequest>,
 }
 
 impl ScriptStep {
-    pub fn new(id: String) -> Self {
-        Self { id }
+    pub fn new(id: String, script: String, inputs: Vec<StepInputRequest>) -> Self {
+        Self { id, script, inputs }
     }
 }
 
@@ -23,9 +25,13 @@ impl Step for ScriptStep {
         self.id.clone()
     }
 
+    fn get_input_requests(&self) -> Vec<StepInputRequest> {
+        self.inputs.clone()
+    }
+
     fn start(
         &self,
-        _ctx: &dyn crate::definition::step::ManageStep,
+        ctx: &dyn crate::definition::step::ManageStep,
     ) -> anyhow::Result<crate::definition::step::StepResult> {
         // TODO! - Set python library path from environment variable + bundle w docker image
         let mut settings: Settings =
@@ -34,7 +40,7 @@ impl Step for ScriptStep {
         settings.debug = true;
         settings.inspect = true;
 
-        let sample_input_json = json!({ "hello": "world!" });
+        let inputs = Value::Object(ctx.get_inputs().clone());
 
         let interpreter = rustpython::vm::Interpreter::with_init(settings, |vm| {
             vm.add_native_modules(stdlib::get_module_inits());
@@ -47,14 +53,16 @@ impl Step for ScriptStep {
             vm.import("pre-import", None, 0).expect("Pre-import works");
         });
 
-        interpreter
-            .enter(|vm| -> vm::PyResult<()> {
-                let module_res = vm.import("test", None, 0);
+        let script_result = interpreter
+            .enter(|vm| -> vm::PyResult<Value> {
+                let module_name = vm.ctx.new_str(self.script.clone());
+
+                let module_res = vm.import(&module_name, None, 0);
 
                 if let Err(err) = module_res {
                     vm.print_exception(err);
 
-                    return Ok(());
+                    return Ok(Value::Null);
                 }
 
                 let module = module_res.expect("Module imported");
@@ -63,15 +71,14 @@ impl Step for ScriptStep {
                     .get_attr("execute", vm)
                     .expect("Should have execute function");
 
-                let py_input =
-                    deserialize(vm, sample_input_json).expect("Convert JSON to PyObject");
+                let py_input = deserialize(vm, inputs).expect("Convert JSON to PyObject");
 
                 let execution_result = execute_fn.call((py_input,), vm);
 
                 if let Err(err) = execution_result {
                     vm.print_exception(err);
 
-                    return Ok(());
+                    return Ok(Value::Null);
                 }
 
                 let result = execution_result.expect("Execution result");
@@ -79,14 +86,20 @@ impl Step for ScriptStep {
                 let result_json =
                     serialize(vm, &result, Serializer).expect("Convert PyObject to JSON");
 
-                println!("Result: {}", result_json);
-
-                Ok(())
+                Ok(result_json)
             })
-            .map_err(|err| anyhow::anyhow!("Error: {:?}", err))?;
+            .expect("All is okay");
 
-        Ok(crate::definition::step::StepResult::Completed(
-            Map::default(),
-        ))
+        if let Value::Object(result) = script_result {
+            return Ok(crate::definition::step::StepResult::Completed(result));
+        } else {
+            // return Ok(crate::definition::step::StepResult::Failed(
+            //     "Script did not return a JSON object".to_string(),
+            // ));
+
+            Ok(crate::definition::step::StepResult::Completed(
+                Map::default(),
+            ))
+        }
     }
 }
