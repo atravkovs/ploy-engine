@@ -132,6 +132,8 @@ impl ProcessActor {
 
         step_state.inputs.extend(inputs);
 
+        println!("Starting step: {}", step_id);
+
         let ctx = ActorStepContext::new(self.job_worker.clone(), step_state.inputs.clone());
         let result = step.start(&ctx)?;
 
@@ -141,30 +143,65 @@ impl ProcessActor {
                 self.jobs.insert(job_id, step_id);
             }
             crate::definition::step::StepResult::Completed(outputs) => {
-                step_state.status = StepExecutionStatus::Completed;
-                step_state.outputs.extend(outputs);
-
-                if let Some(output_schema) = step.output_schema() {
-                    Self::validate_map(&step_state.outputs, &output_schema)?;
-                }
-
-                self.execute_next_steps(&step.id())?;
+                self.complete_step(&step_id, outputs)?;
             }
         }
 
         Ok(())
     }
 
-    fn execute_next_steps(&mut self, id: &str) -> Result<()> {
-        let next_steps = self.process_definition.get_next(id);
+    fn complete_step(&mut self, step_id: &str, outputs: Map<String, Value>) -> Result<()> {
+        let step = self
+            .process_definition
+            .get_step(step_id)
+            .ok_or_else(|| anyhow::anyhow!("Step not found"))?;
 
-        if next_steps.is_none() {
-            return Ok(());
+        let step_state = self
+            .steps
+            .get_mut(step_id)
+            .ok_or_else(|| anyhow::anyhow!("Step state not found"))?;
+
+        step_state.status = StepExecutionStatus::Completed;
+        step_state.outputs.extend(outputs);
+
+        if let Some(output_schema) = step.output_schema() {
+            Self::validate_map(&step_state.outputs, &output_schema)?;
         }
 
-        let step_list = next_steps.unwrap().clone();
+        self.execute_next_steps(step_id)?;
 
-        for next_step_id in step_list {
+        Ok(())
+    }
+
+    fn get_actor_step_context(&self, step_id: &str) -> Result<ActorStepContext> {
+        let step_state = self
+            .steps
+            .get(step_id)
+            .ok_or_else(|| anyhow::anyhow!("Step state not found"))?;
+
+        Ok(ActorStepContext::new(
+            self.job_worker.clone(),
+            step_state.inputs.clone(),
+        ))
+    }
+
+    fn execute_next_steps(&mut self, step_id: &str) -> Result<()> {
+        let step = self
+            .process_definition
+            .get_step(step_id)
+            .ok_or_else(|| anyhow::anyhow!("Step not found"))?;
+
+        let empty_steps = Vec::default();
+
+        let next_steps = self
+            .process_definition
+            .get_next(step_id)
+            .unwrap_or(&empty_steps);
+
+        let ctx = self.get_actor_step_context(step_id)?;
+        let next_steps = step.get_next_steps(&ctx, next_steps);
+
+        for next_step_id in next_steps {
             self.start_step(next_step_id.clone())?;
         }
 
@@ -206,32 +243,7 @@ impl Handler<JobCompletedMessage> for ProcessActor {
             .remove(&msg.job_id)
             .ok_or_else(|| anyhow::anyhow!("Job {} not found", msg.job_id))?;
 
-        let step = self
-            .process_definition
-            .get_step(&step_id)
-            .ok_or_else(|| anyhow::anyhow!("Step {} not found", step_id))?;
-
-        let ctx =
-            ActorStepContext::new(self.job_worker.clone(), self.steps[&step_id].inputs.clone());
-        let result = step.end(&ctx)?;
-
-        match result {
-            crate::definition::step::StepResult::AsyncJob(_) => {
-                return Err(anyhow!("Async job not supported in end"));
-            }
-            crate::definition::step::StepResult::Completed(outputs) => {
-                let step_state = self.steps.get_mut(&step_id).unwrap();
-                step_state.status = StepExecutionStatus::Completed;
-                step_state.outputs.extend(outputs);
-                step_state.outputs.extend(msg.outputs);
-
-                if let Some(output_schema) = step.output_schema() {
-                    Self::validate_map(&step_state.outputs, &output_schema)?;
-                }
-
-                self.execute_next_steps(&step.id())?;
-            }
-        }
+        self.complete_step(&step_id, msg.outputs)?;
 
         Ok(())
     }

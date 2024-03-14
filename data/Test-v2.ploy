@@ -3,6 +3,16 @@
     <Nodes>
         <StartNode id="start" />
 
+        <ConditionNode id="cond1">
+            <Inputs>
+                <Input name="condition" from="script1" output="execute" />
+            </Inputs>
+            <Flows>
+                <Flow name="condition" to="activity1" />
+                <Flow name="default" to="activity2" />
+            </Flows>
+        </ConditionNode>
+
         <ActivityNode id="activity1" job="testJob" name="Activity 1" input="MessageSchema"
             output="MessageSchema">
             <Inputs>
@@ -13,7 +23,7 @@
         <ActivityNode id="activity2" job="testJob" name="Activity 2" input="MessageSchema"
             output="MessageSchema">
             <Inputs>
-                <Input name="message" from="activity1" output="message" />
+                <Input name="message" from="script1" output="name" />
             </Inputs>
         </ActivityNode>
 
@@ -35,8 +45,7 @@
         </ScriptNode>
     </Nodes>
     <Flow>
-        <FlowNode from="start" to="script1"></FlowNode>
-        <FlowNode from="script1" to="activity1"></FlowNode>
+        <FlowNode from="start" to="cond1"></FlowNode>
         <FlowNode from="activity1" to="activity2"></FlowNode>
         <FlowNode from="activity2" to="activity3"></FlowNode>
         <FlowNode from="activity3" to="end"></FlowNode>

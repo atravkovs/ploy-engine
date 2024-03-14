@@ -69,11 +69,11 @@ pub trait Step: Send + Sync {
         vec![]
     }
 
-    fn start(&self, _ctx: &dyn ManageStep) -> Result<StepResult> {
-        Ok(StepResult::Completed(Map::default()))
+    fn get_next_steps(&self, _ctx: &dyn ManageStep, next_steps: &Vec<String>) -> Vec<String> {
+        next_steps.clone()
     }
 
-    fn end(&self, _ctx: &dyn ManageStep) -> Result<StepResult> {
+    fn start(&self, _ctx: &dyn ManageStep) -> Result<StepResult> {
         Ok(StepResult::Completed(Map::default()))
     }
 }

@@ -5,12 +5,14 @@ use serde::Deserialize;
 use crate::{
     definition::step::Step,
     steps::{
-        activity::ActivityStep, data::DataStep, end::EndStep, script::ScriptStep, start::StartStep,
+        activity::ActivityStep, condition::ConditionStep, data::DataStep, end::EndStep,
+        script::ScriptStep, start::StartStep,
     },
 };
 
 use super::{
-    activity::ActivityNode, data::DataNode, end::EndNode, script::ScriptNode, start::StartNode,
+    activity::ActivityNode, condition::ConditionNode, data::DataNode, end::EndNode,
+    script::ScriptNode, start::StartNode,
 };
 
 #[derive(Deserialize, PartialEq, Debug, Clone)]
@@ -20,6 +22,7 @@ pub enum NodeType {
     ActivityNode(ActivityNode),
     DataNode(DataNode),
     ScriptNode(ScriptNode),
+    ConditionNode(ConditionNode),
 }
 
 #[derive(Deserialize, Debug, PartialEq, Clone)]
@@ -58,6 +61,11 @@ impl Into<HashMap<String, Box<dyn Step>>> for Nodes {
                     let script_step: ScriptStep = script.clone().into();
 
                     steps.insert(script.id.clone(), Box::new(script_step));
+                }
+                NodeType::ConditionNode(condition) => {
+                    let condition_step: ConditionStep = condition.clone().into();
+
+                    steps.insert(condition.id.clone(), Box::new(condition_step));
                 }
             }
         }
