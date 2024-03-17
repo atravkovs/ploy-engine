@@ -34,9 +34,15 @@
             </Inputs>
         </ActivityNode>
 
-        <EndNode id="end">
+        <CallNode id="call1" name="Call 1" process="Sub">
             <Inputs>
                 <Input name="message" from="activity3" output="message" />
+            </Inputs>
+        </CallNode>
+
+        <EndNode id="end">
+            <Inputs>
+                <Input name="message" from="call1" output="message" />
             </Inputs>
         </EndNode>
 
@@ -52,7 +58,8 @@
         <FlowNode from="start" to="cond1"></FlowNode>
         <FlowNode from="activity1" to="activity2"></FlowNode>
         <FlowNode from="activity2" to="activity3"></FlowNode>
-        <FlowNode from="activity3" to="end"></FlowNode>
+        <FlowNode from="activity3" to="call1"></FlowNode>
+        <FlowNode from="call1" to="end"></FlowNode>
     </Flow>
     <Diagram>
         <Position id="start" x="50" y="250"></Position>

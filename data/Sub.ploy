@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Ploy>
+    <Nodes>
+        <StartNode id="start" />
+
+        <EndNode id="end">
+            <Inputs>
+                <Input name="message" from="start" output="message" />
+            </Inputs>
+        </EndNode>
+    </Nodes>
+    <Flow>
+        <FlowNode from="start" to="end"></FlowNode>
+    </Flow>
+    <Diagram>
+        <Position id="start" x="50" y="250"></Position>
+        <Position id="end" x="900" y="250"></Position>
+    </Diagram>
+</Ploy>

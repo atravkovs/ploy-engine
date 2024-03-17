@@ -148,7 +148,12 @@ impl ProcessActor {
 
         println!("Starting step: {}", step_id);
 
-        let ctx = ActorStepContext::new(self.job_worker.clone(), step_state.inputs.clone());
+        let ctx = ActorStepContext::new(
+            self.id.clone(),
+            self.process_engine.clone(),
+            self.job_worker.clone(),
+            step_state.inputs.clone(),
+        );
         let result = step.start(&ctx)?;
 
         match result {
@@ -201,6 +206,8 @@ impl ProcessActor {
             .ok_or_else(|| anyhow::anyhow!("Step state not found"))?;
 
         Ok(ActorStepContext::new(
+            self.id.clone(),
+            self.process_engine.clone(),
             self.job_worker.clone(),
             step_state.inputs.clone(),
         ))

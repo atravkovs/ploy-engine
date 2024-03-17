@@ -6,6 +6,7 @@ pub type StepOutputs = Map<String, Value>;
 
 pub trait ManageStep {
     fn add_job(&self, job_name: String) -> JobId;
+    fn start_process(&self, process_name: String, inputs: Map<String, Value>) -> Result<JobId>;
     fn get_inputs(&self) -> &Map<String, Value>;
 }
 
