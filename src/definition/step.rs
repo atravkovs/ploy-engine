@@ -26,6 +26,7 @@ impl StepInputRequest {
 pub enum StepResult {
     AsyncJob(JobId),
     Completed(StepOutputs),
+    ProcessEnded(StepOutputs),
 }
 
 #[derive(Debug, Clone)]

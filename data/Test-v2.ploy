@@ -34,7 +34,11 @@
             </Inputs>
         </ActivityNode>
 
-        <EndNode id="end" />
+        <EndNode id="end">
+            <Inputs>
+                <Input name="message" from="activity3" output="message" />
+            </Inputs>
+        </EndNode>
 
         <DataNode id="data1" type="string" value="Artjoms" />
 

@@ -1,19 +1,29 @@
 use std::{collections::HashMap, sync::Arc};
 
-use actix::{Actor, ActorContext, Addr, AsyncContext, Handler};
+use actix::{Actor, ActorContext, Addr, AsyncContext, Handler, Message};
 use anyhow::{anyhow, Result};
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value};
 
 use super::{
     actor_step_context::ActorStepContext,
+    engine_actor::EngineActor,
     job_worker_actor::{JobCompletedMessage, JobWorkerActor},
 };
-use crate::definition::{
-    process_definition::ProcessDefinition,
-    step::{StepExecutionStatus, StepInputRequest, StepState},
+use crate::{
+    actors::engine_actor,
+    definition::{
+        process_definition::ProcessDefinition,
+        step::{StepExecutionStatus, StepInputRequest, StepState},
+    },
 };
 
+#[derive(Message)]
+#[rtype(result = "anyhow::Result<()>")]
+pub struct EndProcessMessage {}
+
 pub struct ProcessActor {
+    id: String,
+    process_engine: Addr<EngineActor>,
     job_worker: Addr<JobWorkerActor>,
     process_definition: Arc<ProcessDefinition>,
     process_inputs: Map<String, Value>,
@@ -23,6 +33,8 @@ pub struct ProcessActor {
 
 impl ProcessActor {
     pub fn new(
+        id: String,
+        process_engine: Addr<EngineActor>,
         job_worker: Addr<JobWorkerActor>,
         process_definition: Arc<ProcessDefinition>,
         process_inputs: Map<String, Value>,
@@ -30,8 +42,10 @@ impl ProcessActor {
         let jobs = HashMap::default();
 
         Self {
+            id,
             jobs,
             job_worker,
+            process_engine,
             process_inputs,
             process_definition,
             steps: HashMap::default(),
@@ -145,6 +159,13 @@ impl ProcessActor {
             crate::definition::step::StepResult::Completed(outputs) => {
                 self.complete_step(&step_id, outputs)?;
             }
+            crate::definition::step::StepResult::ProcessEnded(outputs) => {
+                self.process_engine
+                    .do_send(engine_actor::EndProcessMessage {
+                        process_id: self.id.clone(),
+                        outputs,
+                    });
+            }
         }
 
         Ok(())
@@ -245,6 +266,15 @@ impl Handler<JobCompletedMessage> for ProcessActor {
 
         self.complete_step(&step_id, msg.outputs)?;
 
+        Ok(())
+    }
+}
+
+impl Handler<EndProcessMessage> for ProcessActor {
+    type Result = Result<()>;
+
+    fn handle(&mut self, _msg: EndProcessMessage, ctx: &mut Self::Context) -> Self::Result {
+        ctx.stop();
         Ok(())
     }
 }
