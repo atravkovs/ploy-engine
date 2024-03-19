@@ -34,7 +34,7 @@ impl JobWorkerService for MyJobWorkerService {
 
         let job_outputs: Map<String, Value> = serde_json::from_str(&inner_request.outputs)
             .map_err(|e| {
-                println!("Error: {:?}", e);
+                log::error!("Error: {:?}", e);
                 tonic::Status::invalid_argument("Invalid outputs JSON")
             })?;
 
@@ -53,7 +53,7 @@ impl JobWorkerService for MyJobWorkerService {
             .send(GetWorkItems)
             .await
             .map_err(|e| {
-                println!("Error: {:?}", e);
+                log::error!("Error: {:?}", e);
                 tonic::Status::internal("Internal error")
             })?;
 

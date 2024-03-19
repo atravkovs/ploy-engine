@@ -2,6 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use actix::{Actor, ActorContext, Addr, AsyncContext, Handler, Message};
 use anyhow::{anyhow, Result};
+use log::{info, warn};
 use serde_json::{Map, Value};
 
 use super::{
@@ -113,7 +114,7 @@ impl ProcessActor {
                 .collect::<Vec<String>>()
                 .join("\n");
 
-            println!("Validation failed: {}", err_message);
+            warn!("Validation failed: {}", err_message);
 
             Err(anyhow!(err_message))
         } else {
@@ -146,7 +147,7 @@ impl ProcessActor {
 
         step_state.inputs.extend(inputs);
 
-        println!("Starting step: {}", step_id);
+        info!("Starting step: {}", step_id);
 
         let ctx = ActorStepContext::new(
             self.id.clone(),
@@ -256,8 +257,7 @@ impl Actor for ProcessActor {
 
         if let Err(err) = self.start_step(self.process_definition.get_start_step_id()) {
             ctx.stop();
-            println!("Failed to start process: {}", err);
-            // log::error!("Failed to start process: {}", err);
+            log::error!("Failed to start process: {}", err);
         }
     }
 }

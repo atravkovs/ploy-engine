@@ -1,5 +1,6 @@
 use actix::{Actor, Handler, Message, Recipient};
 use anyhow::Result;
+use log::info;
 use serde_json::{Map, Value};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -92,7 +93,7 @@ impl Handler<AddWorkItem> for JobWorkerActor {
     type Result = ();
 
     fn handle(&mut self, msg: AddWorkItem, _ctx: &mut Self::Context) -> Self::Result {
-        println!("Adding work item: {:?}", msg.0);
+        info!("Adding work item: {:?}", msg.0);
         self.work_items.push(msg.0);
     }
 }

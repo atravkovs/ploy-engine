@@ -2,6 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use actix::{Actor, Addr, ArbiterHandle, AsyncContext, Handler, Message};
 use anyhow::{anyhow, Result};
+use log::info;
 use serde_json::{Map, Value};
 
 use crate::{
@@ -87,7 +88,7 @@ impl EngineActor {
 
         let process_context = ProcessContext::new(process_id.clone(), process_actor_addr);
 
-        println!("Process started: {:#?}", process_context);
+        info!("Process started: {:#?}", process_context);
 
         self.processes.insert(process_id.clone(), process_context);
 
@@ -180,7 +181,7 @@ impl Handler<EndProcessMessage> for EngineActor {
             process.process_addr = None;
             process.state = ProcessState::Completed;
 
-            println!("Process completed: {:#?}", process);
+            info!("Process completed: {:#?}", process);
 
             process
         };
