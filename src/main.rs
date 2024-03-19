@@ -1,6 +1,7 @@
 use actix::{Actor, Arbiter};
 use actix_rt::System;
 
+use log::info;
 use tokio::select;
 use tonic::transport::Server;
 
@@ -18,6 +19,8 @@ pub mod steps;
 
 #[actix_rt::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
+
     let arbiter_handle = Arbiter::current();
     let job_worker_actor = actors::job_worker_actor::JobWorkerActor::default().start();
     let engine_actor =
@@ -34,14 +37,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let t2 = actix_rt::signal::ctrl_c();
 
-    println!("JobWorkerServer listening on {}", addr);
+    info!("JobWorkerServer listening on {}", addr);
 
     select! {
         _ = t1 => {
-            println!("\nServer stopped");
+            info!("Server stopped");
         }
         _ = t2 => {
-            println!("\nCtrl-C received");
+            info!("Ctrl-C received");
         }
     };
 
