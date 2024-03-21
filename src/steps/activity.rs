@@ -54,4 +54,8 @@ impl Step for ActivityStep {
 
         Ok(StepResult::AsyncJob(job_id))
     }
+
+    fn get_type(&self) -> crate::definition::step::StepType {
+        crate::definition::step::StepType::ActivityStep
+    }
 }

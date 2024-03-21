@@ -37,37 +37,12 @@ fn get_start_step(nodes: &Nodes) -> Result<String> {
         .ok_or_else(|| anyhow::anyhow!("No start node found in the process definition"))
 }
 
-fn get_end_step(nodes: &Nodes) -> Result<Vec<String>> {
-    let end_nodes: Vec<String> = nodes
-        .field
-        .iter()
-        .filter_map(|n| match n {
-            super::nodes::node::NodeType::EndNode(end) => Some(end.id.clone()),
-            _ => None,
-        })
-        .collect();
-
-    if end_nodes.is_empty() {
-        return Err(anyhow::anyhow!(
-            "No end node found in the process definition"
-        ));
-    }
-
-    Ok(end_nodes)
-}
-
 pub fn parse_xml(xml: &str) -> Result<ProcessDefinition> {
     let ploy: PloyDefinitionXml = from_str(xml)?;
 
     let steps = ploy.nodes.clone().into();
     let flow = ploy.flow.clone().into();
     let start_step_id = get_start_step(&ploy.nodes)?;
-    let end_step_ids = get_end_step(&ploy.nodes)?;
 
-    Ok(ProcessDefinition::new(
-        steps,
-        flow,
-        start_step_id,
-        end_step_ids,
-    ))
+    Ok(ProcessDefinition::new(steps, flow, start_step_id))
 }

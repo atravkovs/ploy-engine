@@ -23,4 +23,8 @@ impl Step for StartStep {
             ctx.get_inputs().clone(),
         ))
     }
+
+    fn get_type(&self) -> crate::definition::step::StepType {
+        crate::definition::step::StepType::StartStep
+    }
 }

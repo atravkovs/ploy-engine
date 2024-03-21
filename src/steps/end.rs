@@ -28,4 +28,8 @@ impl Step for EndStep {
             ctx.get_inputs().clone(),
         ))
     }
+
+    fn get_type(&self) -> crate::definition::step::StepType {
+        crate::definition::step::StepType::EndStep
+    }
 }

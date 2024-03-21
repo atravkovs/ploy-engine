@@ -124,4 +124,8 @@ impl Step for ScriptStep {
             ))
         }
     }
+
+    fn get_type(&self) -> crate::definition::step::StepType {
+        crate::definition::step::StepType::ScriptStep
+    }
 }

@@ -62,8 +62,30 @@ impl StepState {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum StepType {
+    StartStep,
+    EndStep,
+    ActivityStep,
+    DataStep,
+    ScriptStep,
+    ConditionStep,
+    CallStep,
+}
+
+impl StepType {
+    pub fn is_end(&self) -> bool {
+        match self {
+            StepType::EndStep => true,
+            _ => false,
+        }
+    }
+}
+
 pub trait Step: Send + Sync {
     fn id(&self) -> String;
+
+    fn get_type(&self) -> StepType;
 
     fn input_schema(&self) -> Option<String> {
         None

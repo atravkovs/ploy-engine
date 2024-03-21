@@ -32,6 +32,12 @@ pub struct GetProcessMessage {
 }
 
 #[derive(Message)]
+#[rtype(result = "anyhow::Result<bool>")]
+pub struct ValidateProcessMessage {
+    pub process_name: String,
+}
+
+#[derive(Message)]
 #[rtype(result = "anyhow::Result<()>")]
 pub struct EndProcessMessage {
     pub process_id: String,
@@ -213,5 +219,18 @@ impl Handler<GetProcessMessage> for EngineActor {
 
     fn handle(&mut self, msg: GetProcessMessage, _ctx: &mut Self::Context) -> Self::Result {
         self.get_process(&msg.process_id).map(|p| p.clone())
+    }
+}
+
+impl Handler<ValidateProcessMessage> for EngineActor {
+    type Result = Result<bool>;
+
+    fn handle(&mut self, msg: ValidateProcessMessage, _ctx: &mut Self::Context) -> Self::Result {
+        let process_definition = Self::import_process_definition(&msg.process_name)?;
+
+        let process_validator =
+            crate::definition::validator::ProcessValidator::new(process_definition);
+
+        Ok(process_validator.validate())
     }
 }

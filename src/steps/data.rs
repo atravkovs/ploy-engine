@@ -31,4 +31,8 @@ impl Step for DataStep {
 
         Ok(crate::definition::step::StepResult::Completed(outputs))
     }
+    
+    fn get_type(&self) -> crate::definition::step::StepType {
+        crate::definition::step::StepType::DataStep
+    }
 }

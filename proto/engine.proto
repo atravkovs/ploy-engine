@@ -5,6 +5,17 @@ package org.xapik.ploy.engine;
 service EngineService {
     rpc GetProcess(GetProcessRequest) returns (GetProcessResponse) {}
     rpc StartProcess(StartProcessRequest) returns (StartProcessResponse) {}
+    rpc ValidateProcess(ValidateProcessRequest) returns (ValidateProcessResponse) {}
+}
+
+message GetProcessRequest {
+    string processId = 1;
+}
+
+message GetProcessResponse {
+    string id = 1;
+    string status = 2;
+    string outputs = 3;
 }
 
 message StartProcessRequest {
@@ -16,12 +27,10 @@ message StartProcessResponse {
     string process_id = 1;
 }
 
-message GetProcessRequest {
-    string processId = 1;
+message ValidateProcessRequest {
+    string processName = 1;
 }
 
-message GetProcessResponse {
-    string id = 1;
-    string status = 2;
-    string outputs = 3;
+message ValidateProcessResponse {
+    bool valid = 1;
 }

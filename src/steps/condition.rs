@@ -52,4 +52,8 @@ impl Step for ConditionStep {
             steps
         }
     }
+
+    fn get_type(&self) -> crate::definition::step::StepType {
+        crate::definition::step::StepType::ConditionStep
+    }
 }

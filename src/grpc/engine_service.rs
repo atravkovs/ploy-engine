@@ -4,9 +4,9 @@ use actix::Addr;
 use serde_json::Map;
 use serde_json::Value;
 
-use crate::actors::engine_actor::EngineActor;
-use crate::actors::engine_actor::GetProcessMessage;
-use crate::actors::engine_actor::StartProcessMessage;
+use crate::actors::engine_actor::{
+    EngineActor, GetProcessMessage, StartProcessMessage, ValidateProcessMessage,
+};
 
 pub mod engine {
     tonic::include_proto!("org.xapik.ploy.engine");
@@ -92,6 +92,24 @@ impl engine::engine_service_server::EngineService for MyEngineService {
             id: process_context.process_id.clone(),
             status: process_context.state.to_string(),
             outputs: Self::get_outputs(&process_context.outputs).to_string(),
+        }))
+    }
+
+    async fn validate_process(
+        &self,
+        request: tonic::Request<engine::ValidateProcessRequest>,
+    ) -> Result<tonic::Response<engine::ValidateProcessResponse>, tonic::Status> {
+        let valid = self
+            .engine
+            .send(ValidateProcessMessage {
+                process_name: request.into_inner().process_name,
+            })
+            .await
+            .map_err(|e| tonic::Status::internal(format!("Failed to validate process: {}", e)))?
+            .map_err(|e| tonic::Status::internal(format!("Failed to validate process: {}", e)))?;
+
+        Ok(tonic::Response::new(engine::ValidateProcessResponse {
+            valid,
         }))
     }
 }
