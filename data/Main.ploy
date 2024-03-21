@@ -7,10 +7,6 @@
             <Inputs>
                 <Input name="condition" from="script1" output="execute" />
             </Inputs>
-            <Flows>
-                <Flow name="condition" to="activity1" />
-                <Flow name="default" to="activity2" />
-            </Flows>
         </ConditionNode>
 
         <ActivityNode id="activity1" job="testJob" name="Activity 1" input="MessageSchema"
@@ -56,6 +52,8 @@
     </Nodes>
     <Flow>
         <FlowNode from="start" to="cond1"></FlowNode>
+        <FlowNode from="cond1" to="activity1" input="condition"></FlowNode>
+        <FlowNode from="cond1" to="activity2"></FlowNode>
         <FlowNode from="activity1" to="activity2"></FlowNode>
         <FlowNode from="activity2" to="activity3"></FlowNode>
         <FlowNode from="activity3" to="call1"></FlowNode>

@@ -1,17 +1,14 @@
-use std::collections::HashMap;
-
-use crate::definition::step::{Step, StepInputRequest};
+use crate::definition::step::{FlowLeaf, Step, StepInputRequest};
 
 #[derive(Debug, Clone)]
 pub struct ConditionStep {
     id: String,
     inputs: Vec<StepInputRequest>,
-    flows: HashMap<String, String>,
 }
 
 impl ConditionStep {
-    pub fn new(id: String, inputs: Vec<StepInputRequest>, flows: HashMap<String, String>) -> Self {
-        Self { id, inputs, flows }
+    pub fn new(id: String, inputs: Vec<StepInputRequest>) -> Self {
+        Self { id, inputs }
     }
 }
 
@@ -27,22 +24,32 @@ impl Step for ConditionStep {
     fn get_next_steps(
         &self,
         ctx: &dyn crate::definition::step::ManageStep,
-        _next_steps: &Vec<String>,
+        next_steps: &Vec<FlowLeaf>,
     ) -> Vec<String> {
-        let mut next_steps = vec![];
+        let inputs = ctx.get_inputs();
 
-        for (condition, next_step) in &self.flows {
-            if let Some(condition_result) = ctx.get_inputs().get(condition) {
-                if condition_result.is_boolean() && condition_result.as_bool().unwrap() {
-                    next_steps.push(next_step.clone());
+        let steps: Vec<String> = next_steps
+            .iter()
+            .filter(|n| {
+                if let Some(input) = &n.input {
+                    inputs.contains_key(input)
+                        && inputs.get(input).unwrap().is_boolean()
+                        && inputs.get(input).unwrap().as_bool().unwrap()
+                } else {
+                    false
                 }
-            }
-        }
+            })
+            .map(|n| n.to.clone())
+            .collect();
 
-        if next_steps.is_empty() && self.flows.contains_key("default") {
-            next_steps.push(self.flows.get("default").unwrap().clone());
+        if steps.is_empty() {
+            next_steps
+                .iter()
+                .filter(|n| n.input.is_none())
+                .map(|n| n.to.clone())
+                .collect()
+        } else {
+            steps
         }
-
-        next_steps
     }
 }

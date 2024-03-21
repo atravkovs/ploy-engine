@@ -10,6 +10,12 @@ pub trait ManageStep {
     fn get_inputs(&self) -> &Map<String, Value>;
 }
 
+#[derive(PartialEq, Debug, Clone)]
+pub struct FlowLeaf {
+    pub to: String,
+    pub input: Option<String>,
+}
+
 #[derive(Debug, Clone)]
 pub struct StepInputRequest {
     pub name: String,
@@ -71,8 +77,12 @@ pub trait Step: Send + Sync {
         vec![]
     }
 
-    fn get_next_steps(&self, _ctx: &dyn ManageStep, next_steps: &Vec<String>) -> Vec<String> {
-        next_steps.clone()
+    fn get_next_steps(&self, _ctx: &dyn ManageStep, next_steps: &Vec<FlowLeaf>) -> Vec<String> {
+        next_steps
+            .iter()
+            .filter(|n| n.input.is_none())
+            .map(|n| n.to.clone())
+            .collect()
     }
 
     fn start(&self, _ctx: &dyn ManageStep) -> Result<StepResult> {
