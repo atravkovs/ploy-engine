@@ -19,7 +19,7 @@
         <ActivityNode id="activity2" job="testJob" name="Activity 2" input="MessageSchema"
             output="MessageSchema">
             <Inputs>
-                <Input name="message" from="script1" output="name" />
+                <Input name="message" from="script1" output="execute" />
             </Inputs>
         </ActivityNode>
 
@@ -44,7 +44,7 @@
 
         <DataNode id="data1" type="string" value="Artjoms" />
 
-        <ScriptNode id="script1" script="to-upper" input="NameSchema" output="NameSchema">
+        <ScriptNode id="script1" script="to-upper" input="NameSchema" output="ToStringOutputSchema">
             <Inputs>
                 <Input name="name" from="data1" output="value" />
             </Inputs>
