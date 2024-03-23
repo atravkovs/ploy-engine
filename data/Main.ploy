@@ -19,7 +19,7 @@
         <ActivityNode id="activity2" job="testJob" name="Activity 2" input="MessageSchema"
             output="MessageSchema">
             <Inputs>
-                <Input name="message" from="script1" output="execute" />
+                <Input name="message" from="script1" output="message" />
             </Inputs>
         </ActivityNode>
 

@@ -6,7 +6,7 @@
         "type": "string"
       },
       "execute": {
-        "type": "string"
+        "type": "boolean"
       }
     },
     "required": [
