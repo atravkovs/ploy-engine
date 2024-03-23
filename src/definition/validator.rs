@@ -68,13 +68,15 @@ impl ProcessValidator {
 
         let input_requests = step.get_input_requests();
 
+        if !self.check_missing_required_input_requests(step_id) {
+            return false;
+        }
+
         for input_request in input_requests {
             if !self.check_input_request_conformance(step_id, &input_request) {
                 return false;
             }
         }
-
-        // TODO check missing mappings
 
         if next_steps.is_none() || next_steps.unwrap().is_empty() {
             if !step.get_type().is_end() {
@@ -96,6 +98,45 @@ impl ProcessValidator {
         stack.insert(step_id.to_string(), false);
 
         true
+    }
+
+    fn check_missing_required_input_requests(&self, step_id: &str) -> bool {
+        let step = self.process_definition.get_step(step_id).unwrap();
+        let input_requests = step.get_input_requests();
+
+        let input_schema = step.input_schema();
+
+        if input_schema.is_none() {
+            warn!("Step {} does not have input schema", step_id);
+
+            // TODO! Rework when there will be support for Process IO schemas
+            return true;
+        }
+
+        let input_schema = input_schema.unwrap();
+        let input_schema = Self::load_schema(&input_schema);
+
+        input_schema["required"]
+            .as_array()
+            .map(|required| {
+                for required_field in required {
+                    let required_field = required_field.as_str().unwrap();
+
+                    if !input_requests
+                        .iter()
+                        .any(|input_request| input_request.name == required_field)
+                    {
+                        warn!(
+                            "Required input field '{}' is missing in mapping of step {}",
+                            required_field, step_id
+                        );
+                        return false;
+                    }
+                }
+
+                true
+            })
+            .unwrap_or(true)
     }
 
     // TODO? Optimize schema loading
