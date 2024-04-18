@@ -43,5 +43,6 @@ USER appuser
 COPY --from=build /bin/server /bin/
 COPY log4rs.yaml log4rs.yaml
 COPY data data
+COPY Lib Lib
 
 CMD ["/bin/server"]
