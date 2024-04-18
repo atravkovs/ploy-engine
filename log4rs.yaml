@@ -6,7 +6,7 @@ appenders:
 
   file:
     kind: file
-    path: "/var/log/ploy-engine.log"
+    path: "ploy-engine.log"
     encoder:
       pattern: "{d} [{t}] - {m}{n}"
 
