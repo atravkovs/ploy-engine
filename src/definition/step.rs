@@ -1,4 +1,5 @@
 use anyhow::Result;
+use rustpython_vm::types::SelfIter;
 use serde_json::{Map, Value};
 
 pub type JobId = String;
@@ -78,6 +79,13 @@ impl StepType {
         match self {
             StepType::EndStep => true,
             _ => false,
+        }
+    }
+
+    pub fn is_flow_step(&self) -> bool {
+        match self {
+            StepType::DataStep | StepType::ScriptStep => false,
+            _ => true,
         }
     }
 }

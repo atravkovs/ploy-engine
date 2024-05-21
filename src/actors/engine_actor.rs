@@ -228,9 +228,8 @@ impl Handler<ValidateProcessMessage> for EngineActor {
     fn handle(&mut self, msg: ValidateProcessMessage, _ctx: &mut Self::Context) -> Self::Result {
         let process_definition = Self::import_process_definition(&msg.process_name)?;
 
-        let process_validator =
-            crate::definition::validator::ProcessValidator::new(process_definition);
-
-        Ok(process_validator.validate())
+        Ok(crate::definition::validator::ProcessValidator::validate(
+            process_definition,
+        ))
     }
 }

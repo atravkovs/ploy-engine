@@ -1,12 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
-use log::{info, warn};
+use log::warn;
 
 use super::{process_definition::ProcessDefinition, step::StepInputRequest};
-
-pub struct ProcessValidator {
-    process_definition: Arc<ProcessDefinition>,
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct IODescriptor {
@@ -25,43 +21,46 @@ impl IODescriptor {
     }
 }
 
+pub struct ProcessValidator {
+    process_definition: Arc<ProcessDefinition>,
+    stack: HashMap<String, bool>,
+    visited: HashMap<String, bool>,
+}
+
 impl ProcessValidator {
-    pub fn new(process_definition: Arc<ProcessDefinition>) -> Self {
-        ProcessValidator { process_definition }
+    fn new(process_definition: Arc<ProcessDefinition>) -> Self {
+        let stack = HashMap::default();
+        let visited = HashMap::default();
+
+        ProcessValidator {
+            process_definition,
+            stack,
+            visited,
+        }
     }
 
-    pub fn validate(&self) -> bool {
+    pub fn validate(process_definition: Arc<ProcessDefinition>) -> bool {
+        Self::new(process_definition).validate_internal()
+    }
+
+    fn validate_internal(&mut self) -> bool {
         let start_step = self.process_definition.get_start_step_id();
 
-        let mut stack = HashMap::default();
-        let mut visited = HashMap::default();
-
-        self.validate_internal(&mut visited, &mut stack, &start_step)
+        self.validate_step(&start_step)
     }
 
-    fn validate_internal(
-        &self,
-        visited: &mut HashMap<String, bool>,
-        stack: &mut HashMap<String, bool>,
-        step_id: &str,
-    ) -> bool {
-        if stack
-            .get(&step_id.to_string())
-            .is_some_and(|item| item == &true)
-        {
+    fn validate_step(&mut self, step_id: &str) -> bool {
+        if self.is_in_stack(step_id) {
             warn!("Cycle detected: {}", step_id);
             return false;
         }
 
-        if visited
-            .get(&step_id.to_string())
-            .is_some_and(|item| item == &true)
-        {
+        if self.was_already_visited(step_id) {
             return true;
         }
 
-        stack.insert(step_id.to_string(), true);
-        visited.insert(step_id.to_string(), true);
+        self.stack.insert(step_id.to_string(), true);
+        self.visited.insert(step_id.to_string(), true);
 
         let step = self.process_definition.get_step(step_id).unwrap();
         let next_steps = self.process_definition.get_next(step_id);
@@ -87,15 +86,19 @@ impl ProcessValidator {
             return true;
         }
 
-        let next_steps = next_steps.unwrap();
+        let next_steps = next_steps
+            .expect("Next steps should exist at this point")
+            .iter()
+            .map(|next_step| next_step.to.clone())
+            .collect::<Vec<String>>();
 
         for next_step in next_steps {
-            if !self.validate_internal(visited, stack, &next_step.to.as_str()) {
+            if !self.validate_step(&next_step) {
                 return false;
             }
         }
 
-        stack.insert(step_id.to_string(), false);
+        self.stack.insert(step_id.to_string(), false);
 
         true
     }
@@ -139,9 +142,29 @@ impl ProcessValidator {
             .unwrap_or(true)
     }
 
+    fn is_in_stack(&self, step_id: &str) -> bool {
+        self.stack.get(step_id).is_some_and(|item| item == &true)
+    }
+
+    fn was_already_visited(&self, step_id: &str) -> bool {
+        self.visited.get(step_id).is_some_and(|item| item == &true)
+    }
+
     // TODO? Optimize schema loading
     fn check_input_request_conformance(&self, step_id: &str, request: &StepInputRequest) -> bool {
-        let step = self.process_definition.get_step(&request.from).unwrap();
+        let step = self
+            .process_definition
+            .get_step(&request.from)
+            .expect("Input should be mapped from existing step");
+
+        if step.get_type().is_flow_step() && !self.is_in_stack(&request.from) {
+            warn!(
+                "Step {} should be executed before {} to map inputs from it",
+                request.from, step_id
+            );
+            return false;
+        }
+
         let output_schema = step.output_schema();
 
         if output_schema.is_none() {
